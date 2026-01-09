@@ -1,73 +1,125 @@
 # ClassFinal
 
+[![Maven Central](https://img.shields.io/badge/Maven%20Central-2.0.0-blue.svg)](https://search.maven.org/artifact/io.github.ygqygq2/classfinal)
+[![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
+[![Java](https://img.shields.io/badge/Java-1.8+-orange.svg)](https://www.oracle.com/java/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://github.com/ygqygq2/classfinal/pkgs/container/classfinal%2Fclassfinal)
+
+> Java class 文件安全加密工具 - 防止反编译，保护源码安全
+
 ## 介绍
-ClassFinal是一款java class文件安全加密工具，支持直接加密jar包或war包，无需修改任何项目代码，兼容spring-framework；可避免源码泄漏或字节码被反编译。
 
-##### Gitee: https://gitee.com/roseboy/classfinal
+ClassFinal 是一款 Java class 文件加密工具，支持直接加密 jar 包或 war 包，无需修改任何项目代码，完全兼容 Spring 框架。
 
-## 项目模块说明
-* **classfinal-core:** ClassFinal的核心模块，几乎所有加密的代码都在这里；
-* **classfinal-fatjar:** ClassFinal打包成独立运行的jar包；
-* **classfinal-maven-plugin:** ClassFinal加密的maven插件；
+- 🔒 **AES 加密**: 使用 AES 算法加密字节码
+- 🚀 **零侵入**: 无需修改项目代码
+- 🌱 **Spring 兼容**: 完全兼容 Spring Boot/Framework
+- 🐳 **容器化**: 提供 Docker 镜像，开箱即用
+- 🔑 **灵活解密**: 支持密码、环境变量、机器码绑定等多种方式
 
-## 功能特性
-* 无需修改原项目代码，只要把编译好的jar/war包用本工具加密即可。
-* 运行加密项目时，无需求修改tomcat，spring等源代码。
-* 支持普通jar包、springboot jar包以及普通java web项目编译的war包。
-* 支持spring framework、swagger等需要在启动过程中扫描注解或生成字节码的框架。
-* 支持maven插件，添加插件后在打包过程中自动加密。
-* 支持加密WEB-INF/lib或BOOT-INF/lib下的依赖jar包。
-* 支持绑定机器，项目加密后只能在特定机器运行。
-* 支持加密springboot的配置文件。
+**项目链接**:
+- GitHub: https://github.com/ygqygq2/classfinal
+- 原项目: https://gitee.com/roseboy/classfinal
 
-## 环境依赖
-JDK 1.8 +
+## 文档
 
-## 使用说明
+- 📖 [架构设计文档](docs/01-architecture-design.md) - 详细的架构设计和技术原理
+- �� [Docker 使用指南](docs/02-docker-usage.md) - Docker 容器化部署和使用
+- 🛠️ [开发指南](docs/03-development-guide.md) - 开发环境配置和贡献指南
+- 🧪 [集成测试文档](docs/04-integration-testing.md) - 集成测试环境和测试流程
+- 📝 [更新日志](CHANGELOG.md) - 版本更新记录
+
+## 快速开始
 
 ### 下载
-[点此下载](https://repo1.maven.org/maven2/net/roseboy/classfinal-fatjar/1.2.1/classfinal-fatjar-1.2.1.jar)
 
-### 加密
-
-执行以下命令
-
-```sh
-java -jar classfinal-fatjar.jar -file yourpaoject.jar -libjars a.jar,b.jar -packages com.yourpackage,com.yourpackage2 -exclude com.yourpackage.Main -pwd 123456 -Y
+**Maven 依赖**:
+```xml
+<dependency>
+    <groupId>io.github.ygqygq2</groupId>
+    <artifactId>classfinal-core</artifactId>
+    <version>2.0.0</version>
+</dependency>
 ```
 
-```text
-参数说明
--file        加密的jar/war完整路径
--packages    加密的包名(可为空,多个用","分割)
--libjars     jar/war包lib下要加密jar文件名(可为空,多个用","分割)
--cfgfiles    需要加密的配置文件，一般是classes目录下的yml或properties文件(可为空,多个用","分割)
--exclude     排除的类名(可为空,多个用","分割)
--classpath   外部依赖的jar目录，例如/tomcat/lib(可为空,多个用","分割)
--pwd         加密密码，如果是#号，则使用无密码模式加密
--code        机器码，在绑定的机器生成，加密后只可在此机器上运行
--Y           无需确认，不加此参数会提示确认以上信息
+**独立 JAR**:  
+[GitHub Releases](https://github.com/ygqygq2/classfinal/releases)
+
+**Docker 镜像**:
+```bash
+docker pull ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
 ```
 
-结果: 生成 yourpaoject-encrypted.jar，这个就是加密后的jar文件；加密后的文件不可直接执行，需要配置javaagent。
+### 加密 JAR
 
-> 注:
-> 以上示例是直接用参数执行，也可以直接执行 java -jar classfinal-fatjar.jar按照步骤提示输入信息完成加密。
+```bash
+java -jar classfinal-fatjar.jar \
+  -file yourproject.jar \
+  -packages com.yourpackage \
+  -pwd yourpassword \
+  -Y
+```
 
-### maven插件方式
+**参数说明**:
+- `-file`: 要加密的 jar/war 路径
+- `-packages`: 要加密的包名（多个用逗号分隔）
+- `-pwd`: 加密密码（使用 `#` 表示无密码模式）
+- `-libjars`: lib 目录下要加密的 jar（可选）
+- `-exclude`: 排除的类名（可选）
+- `-code`: 机器码绑定（可选）
+- `-Y`: 跳过确认提示
 
-在要加密的项目pom.xml中加入以下插件配置,目前最新版本是：1.2.1。
+**结果**: 生成 `yourproject-encrypted.jar`
+
+### 运行加密后的应用
+
+```bash
+java -javaagent:yourproject-encrypted.jar='-pwd yourpassword' \
+  -jar yourproject-encrypted.jar
+```
+
+或使用环境变量:
+```bash
+java -javaagent:yourproject-encrypted.jar='-pwdname MY_PASSWORD' \
+  -jar yourproject-encrypted.jar
+```
+
+### Docker 方式
+
+**加密**:
+```bash
+docker run --rm \
+  -v $(pwd):/data \
+  -e INPUT_FILE=/data/app.jar \
+  -e PACKAGES=com.example \
+  -e PASSWORD=yourpassword \
+  ghcr.io/ygqygq2/classfinal/classfinal:2.0.0 encrypt
+```
+
+**运行**:
+```bash
+docker run --rm \
+  -v $(pwd):/data \
+  -e TARGET_JAR=/data/app-encrypted.jar \
+  -e PASSWORD=yourpassword \
+  ghcr.io/ygqygq2/classfinal/classfinal:2.0.0 agent
+```
+
+详见 [Docker 使用指南](docs/02-docker-usage.md)
+
+## Maven 插件
+
+在 `pom.xml` 中添加插件配置：
+
 ```xml
 <plugin>
-    <!-- https://gitee.com/roseboy/classfinal -->
-    <groupId>net.roseboy</groupId>
+    <groupId>io.github.ygqygq2</groupId>
     <artifactId>classfinal-maven-plugin</artifactId>
-    <version>${classfinal.version}</version>
+    <version>2.0.0</version>
     <configuration>
-        <password>000000</password><!--加密打包之后pom.xml会被删除，不用担心在jar包里找到此密码-->
-        <packages>com.yourpackage,com.yourpackage2</packages>
-        <cfgfiles>application.yml</cfgfiles>
-        <excludes>org.spring</excludes>
+        <password>yourpassword</password>
+        <packages>com.example</packages>
+        <excludes>com.example.test</excludes>
         <libjars>a.jar,b.jar</libjars>
     </configuration>
     <executions>
@@ -80,96 +132,133 @@ java -jar classfinal-fatjar.jar -file yourpaoject.jar -libjars a.jar,b.jar -pack
     </executions>
 </plugin>
 ```
-运行mvn package时会在target下自动加密生成yourpaoject-encrypted.jar。
 
-maven插件的参数名称与直接运行的参数相同，请参考上节的参数说明。
+运行 `mvn package` 后自动生成加密后的 jar。
+
+## 高级功能
 
 ### 无密码模式
 
-加密时-pwd参数设为#，启动时可不用输入密码；
-如果是war包，启动时指定参数 -nopwd，跳过输密码过程。
+适用于不希望暴露密码的场景，加密时使用 `-pwd #`:
 
-### 机器绑定
+```bash
+java -jar classfinal-fatjar.jar -file app.jar -packages com.example -pwd # -Y
+```
 
-机器绑定只允许加密的项目在特定的机器上运行；
+运行时添加 `-nopwd` 参数:
+```bash
+java -javaagent:app-encrypted.jar='-nopwd' -jar app-encrypted.jar
+```
 
-在需要绑定的机器上执行以下命令，生成机器码
-```sh
+### 机器码绑定
+
+1. 在目标机器生成机器码:
+```bash
 java -jar classfinal-fatjar.jar -C
 ```
-加密时用-code指定机器码。机器绑定可同时支持机器码+密码的方式加密。
 
-
-### 启动加密后的jar
-
-加密后的项目需要设置javaagent来启动，项目在启动过程中解密class，完全内存解密，不留下任何解密后的文件。
-
-解密功能已经自动加入到 yourpaoject-encrypted.jar中，所以启动时-javaagent与-jar相同，不需要额外的jar包。
-
-启动jar项目执行以下命令：
-
-```sh
-java -javaagent:yourpaoject-encrypted.jar='-pwd 0000000' -jar yourpaoject-encrypted.jar
-
-//参数说明
-// -pwd      加密项目的密码  
-// -pwdname  环境变量中密码的名字
+2. 加密时绑定机器码:
+```bash
+java -jar classfinal-fatjar.jar \
+  -file app.jar \
+  -packages com.example \
+  -pwd yourpassword \
+  -code your-machine-code \
+  -Y
 ```
 
-或者不加pwd参数直接启动，启动后在控制台里输入密码，推荐使用这种方式：
+加密后的应用只能在该机器上运行。
 
-```sh
-java -javaagent:yourpaoject-encrypted.jar -jar yourpaoject-encrypted.jar
-```
-~~使用nohup命令启动时，如果系统支持gui，会弹出输入密码的界面，如果是纯命令行下，不支持gui，则需要在同级目录下的classfinal.txt或yourpaoject-encrypted.classfinal.txt中写入密码，项目读取到密码后会清空此文件。~~
+### Tomcat 部署
 
-密码读取顺序已经改为：参数获取密码||环境变量获取密码||密码文件获取密码||控制台输入密码||GUI输入密码||退出
+修改 Tomcat 启动脚本:
 
-
-### tomcat下运行加密后的war
-
-将加密后的war放在tomcat/webapps下，
-tomcat/bin/catalina 增加以下配置:
-
-```sh
-//linux下 catalina.sh
-CATALINA_OPTS="$CATALINA_OPTS -javaagent:classfinal-fatjar.jar='-pwd 0000000'";
-export CATALINA_OPTS;
-
-//win下catalina.bat
-set JAVA_OPTS="-javaagent:classfinal-fatjar.jar='-pwd 000000'"
-
-//参数说明 
-// -pwd      加密项目的密码  
-// -nopwd    无密码加密时启动加上此参数，跳过输密码过程
-// -pwdname  环境变量中密码的名字
+**Linux (catalina.sh)**:
+```bash
+CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-fatjar.jar='-pwd yourpassword'"
+export CATALINA_OPTS
 ```
 
--------------------------
+**Windows (catalina.bat)**:
+```bat
+set JAVA_OPTS="-javaagent:C:\path\to\classfinal-fatjar.jar='-pwd yourpassword'"
+```
 
-> 本工具使用AES算法加密class文件，密码是保证不被破解的关键，请保存好密码，请勿泄漏。
+## 安全建议
 
-> 密码一旦忘记，项目不可启动且无法恢复，请牢记密码。
+- 🔐 **保护密码**: 使用环境变量而非命令行参数传递密码
+- 🚫 **禁用附加**: 添加 JVM 参数 `-XX:+DisableAttachMechanism`
+- 💾 **备份**: 妥善保管加密密码，忘记密码将无法恢复
+- 🔒 **机器绑定**: 重要应用建议使用机器码绑定
 
-> 本工具加密后，原始的class文件并不会完全被加密，只是方法体被清空，保留方法参数、注解等信息，这是为了兼容spring，swagger等扫描注解的框架；
-方法体被清空后，反编译者只能看到方法名和注解，看不到方法的具体内容；当class被classloader加载时，真正的方法体会被解密注入。
+## 技术原理
 
-> 为了保证项目在运行时的安全，启动jvm时请加参数:  -XX:+DisableAttachMechanism 。
+1. **加密阶段**: 
+   - 清空方法体（保留签名和注解）
+   - 使用 AES 加密原始字节码
+   - 将加密数据存储在 JAR 内部
 
+2. **运行阶段**:
+   - JavaAgent 在类加载时拦截
+   - 实时解密方法体字节码
+   - 注入完整方法到 JVM
+   - 完全内存操作，不落盘
 
-## 版本说明
-* v1.2.1 bug修复
-* v1.2.0 packages、libjars、cfgfiles、exclude 参数增加通配符功能
-* v1.1.7 支持加密springboot的配置文件；增加环境变量中读取密码
-* v1.1.6 增加机器绑定功能
-* v1.1.5 增加无密码加密方式，启动无需输密码，但是并不安全
-* v1.1.4 纯命令行下运行jar时，从配置文件中读取密码，读取后清空文件
-* v1.1.3 加入输入密码的弹框
-* v1.1.2 修复windows下加密后不能启动的问题
-* v1.1.1 启动jar时在控制台输入密码，无需将密码放在参数中
-* v1.1.0 加密jar包时将解密代码加入加密后的jar包，无需使用多余的jar文件
-* v1.0.0 第一个正式版发布
+详见 [架构设计文档](docs/01-architecture-design.md)
 
+## 兼容性
 
-## 协议声明
-[Apache-2.0](http://www.apache.org/licenses/LICENSE-2.0)
+### 框架
+- ✅ Spring Boot / Spring Framework
+- ✅ MyBatis / Hibernate / JPA
+- ✅ Tomcat / Jetty / Undertow
+- ✅ Swagger / OpenAPI
+
+### JDK
+- ✅ JDK 8, 11, 17, 21
+- ⚠️ GraalVM Native Image（不支持）
+
+### 容器
+- ✅ Docker / Kubernetes
+- ✅ Docker Compose
+- ✅ Podman / OpenShift
+
+## 常见问题
+
+**Q: 会影响性能吗？**  
+A: 仅首次类加载时解密，后续无性能影响。
+
+**Q: 能完全防止反编译吗？**  
+A: 增加反编译难度，但内存 dump 仍可能获取解密后的代码。
+
+**Q: 密码忘记了怎么办？**  
+A: 无法恢复，请务必备份密码。
+
+**Q: 支持哪些加密算法？**  
+A: 当前使用 AES-256，可扩展支持其他算法。
+
+更多问题见 [Issues](https://github.com/ygqygq2/classfinal/issues)
+
+## 版本历史
+
+查看 [CHANGELOG.md](CHANGELOG.md) 了解详细更新记录。
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+详见 [开发指南](docs/03-development-guide.md)
+
+## 协议
+
+本项目采用 [Apache License 2.0](LICENSE) 开源协议。
+
+## 致谢
+
+- 原作者 [@roseboy](https://gitee.com/roseboy) 创建了这个优秀的项目
+- 所有贡献者的支持和反馈
+
+---
+
+**维护者**: [@ygqygq2](https://github.com/ygqygy2)  
+**Star ⭐ 支持**: 如果这个项目对你有帮助，请给个 Star！

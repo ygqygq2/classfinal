@@ -1,0 +1,784 @@
+services:
+  # 基础镜像：包含 entrypoint.sh
+  base:
+    build:
+      context: integration-test/docker/base
+      dockerfile: Dockerfile
+    image: ghcr.io/ygqygq2/classfinal/base:latest
+    container_name: base
+    profiles:
+      - build
+    networks:
+      - test-network
+
+  # 测试应用构建器镜像
+  test-app-builder:
+    build:
+      context: .
+      dockerfile: integration-test/docker/test-app-builder/Dockerfile
+      args:
+        USE_CHINA_MIRROR: ${USE_CHINA_MIRROR:-true}
+    image: ghcr.io/ygqygq2/classfinal/test-app-builder:1.0.0
+    container_name: test-app-builder-build
+    profiles:
+      - build
+    depends_on:
+      base:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 构建 ClassFinal
+  classfinal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # 本地开发默认使用国内镜像源,CI 环境设置 USE_CHINA_MIRROR=false
+        USE_CHINA_MIRROR: ${USE_CHINA_MIRROR:-true}
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    container_name: classfinal
+    environment:
+      - OSSRH_USERNAME=${OSSRH_USERNAME}
+      - OSSRH_PASSWORD=${OSSRH_PASSWORD}
+    volumes:
+      - maven-local-repo:/root/.m2/repository
+    profiles:
+      - build
+    networks:
+      - test-network
+
+  # 构建测试应用
+  test-app:
+    build:
+      context: .
+      dockerfile: integration-test/test-app/Dockerfile
+      args:
+        USE_CHINA_MIRROR: ${USE_CHINA_MIRROR:-true}
+    image: ghcr.io/ygqygq2/classfinal/test-app:1.0.0
+    container_name: test-app-build
+    profiles:
+      - build
+    depends_on:
+      base:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 测试原始应用（基准测试）
+  test-original:
+    image: ghcr.io/ygqygq2/classfinal/test-app:1.0.0
+    pull_policy: never
+    container_name: test-original
+    command: ["run"]
+    networks:
+      - test-network
+
+  # 准备测试应用：将 test-app 镜像内的 jar 复制到共享卷
+  prepare-test-app:
+    image: ghcr.io/ygqygq2/classfinal/test-app:1.0.0
+    pull_policy: never
+    container_name: prepare-test-app
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 复制测试应用到共享卷 ==="
+        cp /app/app.jar /data/app.jar
+        echo "✓ 复制完成: /data/app.jar"
+        ls -lh /data/app.jar
+    volumes:
+      - test-data:/data
+    networks:
+      - test-network
+  # 加密测试应用
+  encrypt-app:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    pull_policy: never
+    container_name: encrypt-app
+    command: ["encrypt"]
+    environment:
+      - INPUT_FILE=/data/app.jar
+      - PACKAGES=io.github.ygqygq2.test
+      - PASSWORD=test123
+      - OUTPUT_FILE=/data/app-encrypted.jar
+    volumes:
+      - test-data:/data
+    depends_on:
+      prepare-test-app:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 测试：不带密码运行加密应用（应该失败）
+  test-encrypted-no-password:
+    image: eclipse-temurin:8-jre-alpine
+    container_name: test-encrypted-no-password
+    working_dir: /app
+    volumes:
+      - test-data:/data
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 测试1: 不带密码运行加密应用（应该失败） ==="
+        if java -jar /data/app-encrypted.jar 2>&1 | grep -q "invalid password"; then
+          echo "✓ 测试通过: 加密应用正确要求密码"
+          exit 0
+        else
+          echo "✗ 测试失败: 应该要求密码验证"
+          exit 1
+        fi
+    depends_on:
+      encrypt-app:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 测试：使用 JavaAgent 和密码运行加密应用（应该成功）
+  test-encrypted-with-password:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    pull_policy: never
+    container_name: test-encrypted-with-password
+    command: ["agent"]
+    environment:
+      - TARGET_JAR=/data/app-encrypted.jar
+      - PASSWORD=test123
+    volumes:
+      - test-data:/data
+    depends_on:
+      encrypt-app:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 测试：使用错误密码运行加密应用（应该失败）
+  test-encrypted-wrong-password:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    pull_policy: never
+    container_name: test-encrypted-wrong-password
+    volumes:
+      - test-data:/data
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 测试2: 使用错误密码（应该失败） ==="
+        if echo "wrongpassword123" | java -javaagent:/app/app.jar -jar /data/app-encrypted.jar 2>&1 | grep -qi "password"; then
+          echo "✓ 测试通过: 正确拒绝错误密码"
+          exit 0
+        else
+          echo "✗ 测试失败: 应该拒绝错误密码"
+          exit 1
+        fi
+    depends_on:
+      encrypt-app:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 准备多包测试应用
+  prepare-multipackage-test:
+    image: ghcr.io/ygqygq2/classfinal/test-app:1.0.0
+    pull_policy: never
+    container_name: prepare-multipackage-test
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 复制测试应用（多包测试） ==="
+        cp /app/app.jar /data/app-multipackage.jar
+        echo "✓ 复制完成: /data/app-multipackage.jar"
+    volumes:
+      - test-data:/data
+    networks:
+      - test-network
+
+  # 测试：多包加密
+  encrypt-multipackage:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    pull_policy: never
+    container_name: encrypt-multipackage
+    command: ["encrypt"]
+    environment:
+      - INPUT_FILE=/data/app-multipackage.jar
+      - PACKAGES=io.github.ygqygq2.test,com.google.gson
+      - PASSWORD=multitest456
+      - OUTPUT_FILE=/data/app-multipackage-encrypted.jar
+    volumes:
+      - test-data:/data
+    depends_on:
+      prepare-multipackage-test:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 测试：多包加密应用运行
+  test-multipackage-encrypted:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    pull_policy: never
+    container_name: test-multipackage-encrypted
+    command: ["agent"]
+    environment:
+      - TARGET_JAR=/data/app-multipackage-encrypted.jar
+      - PASSWORD=multitest456
+    volumes:
+      - test-data:/data
+    depends_on:
+      encrypt-multipackage:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 测试：排除类名功能
+  prepare-exclude-test:
+    image: ghcr.io/ygqygq2/classfinal/test-app:1.0.0
+    pull_policy: never
+    container_name: prepare-exclude-test
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 准备排除类名测试 ==="
+        cp /app/app.jar /data/app-exclude.jar
+        echo "✓ 准备完成"
+    volumes:
+      - test-data:/data
+    networks:
+      - test-network
+
+  encrypt-with-exclude:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    pull_policy: never
+    container_name: encrypt-with-exclude
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 加密时排除特定类 ==="
+        java -jar /app/app.jar -file /data/app-exclude.jar \
+          -packages io.github.ygqygq2.test \
+          -exclude io.github.ygqygq2.test.model \
+          -pwd exclude123 \
+          -Y
+        echo "✓ 排除类名加密完成"
+    volumes:
+      - test-data:/data
+    depends_on:
+      prepare-exclude-test:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  test-encrypted-with-exclude:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    pull_policy: never
+    container_name: test-encrypted-with-exclude
+    command: ["agent"]
+    environment:
+      - TARGET_JAR=/data/app-exclude-encrypted.jar
+      - PASSWORD=exclude123
+    volumes:
+      - test-data:/data
+    depends_on:
+      encrypt-with-exclude:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 测试：无密码模式
+  prepare-nopwd-test:
+    image: ghcr.io/ygqygq2/classfinal/test-app:1.0.0
+    pull_policy: never
+    container_name: prepare-nopwd-test
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 准备无密码模式测试 ==="
+        cp /app/app.jar /data/app-nopwd.jar
+        echo "✓ 准备完成"
+    volumes:
+      - test-data:/data
+    networks:
+      - test-network
+
+  encrypt-nopwd:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    pull_policy: never
+    container_name: encrypt-nopwd
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 无密码模式加密 ==="
+        java -jar /app/app.jar -file /data/app-nopwd.jar \
+          -packages io.github.ygqygq2.test \
+          -pwd '#' \
+          -Y
+        echo "✓ 无密码加密完成"
+    volumes:
+      - test-data:/data
+    depends_on:
+      prepare-nopwd-test:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  test-encrypted-nopwd:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    pull_policy: never
+    container_name: test-encrypted-nopwd
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 测试无密码模式运行 ==="
+        java -javaagent:/app/app.jar='-nopwd' -jar /data/app-nopwd-encrypted.jar
+    volumes:
+      - test-data:/data
+    depends_on:
+      encrypt-nopwd:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 测试：Maven 插件集成
+  # 先安装插件到 Maven 本地仓库
+  install-maven-plugin:
+    image: maven:3.8-openjdk-8
+    container_name: install-maven-plugin
+    working_dir: /workspace
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 安装 classfinal-maven-plugin 到本地仓库 ==="
+        # 配置国内镜像源
+        mkdir -p /root/.m2
+        cat > /root/.m2/settings.xml <<EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+          <mirrors>
+            <mirror>
+              <id>aliyunmaven</id>
+              <mirrorOf>central</mirrorOf>
+              <name>阿里云公共仓库</name>
+              <url>https://maven.aliyun.com/repository/public</url>
+            </mirror>
+          </mirrors>
+        </settings>
+        EOF
+
+        # 只构建和安装必要的模块
+        mvn clean install -pl classfinal-core,classfinal-maven-plugin -am -DskipTests -Dgpg.skip=true
+        echo "✓ Maven 插件已安装到本地仓库"
+        ls -la /root/.m2/repository/io/github/ygqygq2/
+    volumes:
+      - .:/workspace
+      - maven-local-repo:/root/.m2/repository
+    networks:
+      - test-network
+
+  test-maven-plugin:
+    image: ghcr.io/ygqygq2/classfinal/test-app-builder:1.0.0
+    pull_policy: never
+    container_name: test-maven-plugin
+    working_dir: /workspace/integration-test/test-apps/maven-plugin
+    entrypoint: []
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== Maven 插件集成测试 ==="
+        # 直接构建，pom.xml 已预配置好 classfinal-maven-plugin
+        mvn clean package -Dgpg.skip=true
+
+        # 检查是否生成加密文件
+        if [ -f target/classfinal-test-maven-plugin-*-encrypted.jar ]; then
+          echo "✓ Maven 插件加密成功"
+          cp target/classfinal-test-maven-plugin-*-encrypted.jar /data/app-maven-encrypted.jar
+          
+          # 测试运行（使用 -pwd 参数传递密码）
+          java -javaagent:/data/app-maven-encrypted.jar='-pwd maven123' \
+            -jar /data/app-maven-encrypted.jar
+          
+          if [ $? -eq 0 ]; then
+            echo "✓ Maven 插件集成测试通过"
+          else
+            echo "✗ 加密应用运行失败"
+            exit 1
+          fi
+        else
+          echo "✗ Maven 插件加密失败"
+          ls -la target/
+          exit 1
+        fi
+    volumes:
+      - test-data:/data
+      - maven-local-repo:/root/.m2/repository
+    depends_on:
+      install-maven-plugin:
+        condition: service_completed_successfully
+      prepare-test-app:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 准备：lib 依赖测试应用
+  prepare-libjars-test:
+    image: ghcr.io/ygqygq2/classfinal/test-app-builder:1.0.0
+    pull_policy: never
+    container_name: prepare-libjars-test
+    working_dir: /workspace/integration-test/test-apps/libjars
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 准备 lib 依赖测试应用 ==="
+        # 直接构建，pom.xml 已配置好 dependency:copy-dependencies
+        mvn clean package -Dgpg.skip=true
+
+        # 复制到共享卷
+        cp target/classfinal-test-libjars-*.jar /data/app-libjars.jar
+        cp -r target/lib /data/
+
+        echo "✓ lib 依赖测试应用准备完成"
+        ls -lh /data/lib/
+    volumes:
+      - test-data:/data
+      - maven-local-repo:/root/.m2/repository
+    networks:
+      - test-network
+
+  # 加密：使用 -libjars 参数加密 lib 依赖
+  encrypt-with-libjars:
+    image: ygqygq2/classfinal:2.0.0
+    container_name: encrypt-with-libjars
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 使用 -libjars 加密 lib 依赖 ==="
+        java -jar /app/classfinal.jar \
+          -file /data/app-libjars.jar \
+          -libjars /data/lib/gson-2.10.1.jar \
+          -packages io.github.ygqygq2.test \
+          -pwd libjars123 \
+          -Y
+
+        echo "✓ lib 依赖加密完成"
+        ls -lh /data/
+    volumes:
+      - test-data:/data
+    depends_on:
+      prepare-libjars-test:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 测试：运行 lib 依赖加密后的应用
+  test-libjars-encrypted:
+    image: openjdk:8-jre-slim
+    container_name: test-libjars-encrypted
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 测试 lib 依赖加密应用 ==="
+        java -javaagent:/data/app-libjars-encrypted.jar='-pwd libjars123' \
+          -cp /data/app-libjars-encrypted.jar:/data/lib/gson-2.10.1-encrypted.jar \
+          io.github.ygqygq2.test.Main
+    volumes:
+      - test-data:/data
+    depends_on:
+      encrypt-with-libjars:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 准备：配置文件加密测试
+  prepare-config-encryption:
+    image: ghcr.io/ygqygq2/classfinal/test-app-builder:1.0.0
+    pull_policy: never
+    container_name: prepare-config-encryption
+    working_dir: /workspace/integration-test/test-apps/config-file
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 准备配置文件加密测试 ==="
+        # 直接构建，database.properties 已创建好
+        mvn clean package -Dgpg.skip=true
+        cp target/classfinal-test-config-*.jar /data/app-config.jar
+
+        echo "✓ 配置文件测试应用准备完成"
+    volumes:
+      - test-data:/data
+      - maven-local-repo:/root/.m2/repository
+    networks:
+      - test-network
+
+  # 加密：加密配置文件
+  encrypt-config-files:
+    image: ygqygq2/classfinal:2.0.0
+    container_name: encrypt-config-files
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 加密配置文件 ==="
+        java -jar /app/classfinal.jar \
+          -file /data/app-config.jar \
+          -packages io.github.ygqygq2.test \
+          -pwd config123 \
+          -Y
+
+        # 验证配置文件已加密(应该无法直接读取)
+        unzip -p /data/app-config-encrypted.jar database.properties > /tmp/encrypted-config.txt 2>/dev/null || true
+        if grep -q "db.password=secret123" /tmp/encrypted-config.txt 2>/dev/null; then
+          echo "✗ 配置文件未加密"
+          exit 1
+        else
+          echo "✓ 配置文件已加密"
+        fi
+    volumes:
+      - test-data:/data
+    depends_on:
+      prepare-config-encryption:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 测试：运行配置文件加密后的应用
+  test-config-encrypted:
+    image: openjdk:8-jre-slim
+    container_name: test-config-encrypted
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 测试配置文件加密应用 ==="
+        java -javaagent:/data/app-config-encrypted.jar='-pwd config123' \
+          -jar /data/app-config-encrypted.jar
+    volumes:
+      - test-data:/data
+    depends_on:
+      encrypt-config-files:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 准备：机器码绑定测试
+  prepare-machine-code:
+    image: ygqygq2/classfinal:2.0.0
+    container_name: prepare-machine-code
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 生成机器码 ==="
+        java -jar /app/classfinal.jar -C > /data/machine.code
+        cat /data/machine.code
+        echo "✓ 机器码生成完成"
+    volumes:
+      - test-data:/data
+    networks:
+      - test-network
+
+  # 加密：使用机器码绑定
+  encrypt-with-machine-code:
+    image: ygqygq2/classfinal:2.0.0
+    container_name: encrypt-with-machine-code
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 使用机器码绑定加密 ==="
+        CODE=$$(cat /data/machine.code)
+        java -jar /app/classfinal.jar \
+          -file /data/app.jar \
+          -packages io.github.ygqygq2.test \
+          -code "$$CODE" \
+          -pwd machine123 \
+          -Y
+
+        mv /data/app-encrypted.jar /data/app-machine-encrypted.jar
+        echo "✓ 机器码绑定加密完成"
+    volumes:
+      - test-data:/data
+    depends_on:
+      prepare-machine-code:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 测试：在正确的机器上运行
+  test-machine-code-correct:
+    image: openjdk:8-jre-slim
+    container_name: test-machine-code-correct
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 测试机器码绑定(正确机器) ==="
+        java -javaagent:/data/app-machine-encrypted.jar='-pwd machine123' \
+          -jar /data/app-machine-encrypted.jar
+        echo "✓ 在绑定机器上运行成功"
+    volumes:
+      - test-data:/data
+    depends_on:
+      encrypt-with-machine-code:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 准备：WAR 包测试应用
+  prepare-war-test:
+    image: ghcr.io/ygqygy2/classfinal/test-app-builder:1.0.0
+    pull_policy: never
+    container_name: prepare-war-test
+    working_dir: /workspace/integration-test/test-apps/war
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 准备 WAR 包测试应用 ==="
+        # 直接构建，pom.xml 已配置为 war 打包
+        mvn clean package -Dgpg.skip=true
+        cp target/classfinal-test-war-*.war /data/app.war
+
+        echo "✓ WAR 包测试应用准备完成"
+        ls -lh /data/app.war
+    volumes:
+      - test-data:/data
+      - maven-local-repo:/root/.m2/repository
+    networks:
+      - test-network
+
+  # 加密：WAR 包加密
+  encrypt-war:
+    image: ygqygq2/classfinal:2.0.0
+    container_name: encrypt-war
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== WAR 包加密 ==="
+        java -jar /app/classfinal.jar \
+          -file /data/app.war \
+          -packages io.github.ygqygy2.test \
+          -pwd war123 \
+          -Y
+
+        echo "✓ WAR 包加密完成"
+        ls -lh /data/app-encrypted.war
+    volumes:
+      - test-data:/data
+    depends_on:
+      prepare-war-test:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 测试：验证 WAR 包加密
+  test-war-encrypted:
+    image: openjdk:8-jre-slim
+    container_name: test-war-encrypted
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 验证 WAR 包加密 ==="
+        # 解压查看 class 文件是否加密
+        apt-get update -qq && apt-get install -y -qq unzip > /dev/null
+        unzip -q /data/app-encrypted.war -d /tmp/war
+
+        # 尝试反编译 class 文件(应该失败或乱码)
+        if file /tmp/war/WEB-INF/classes/io/github/ygqygq2/test/servlet/HelloServlet.class | grep -q "data"; then
+          echo "✓ WAR 包中的 class 文件已加密"
+        else
+          echo "✗ WAR 包加密可能失败"
+          exit 1
+        fi
+    volumes:
+      - test-data:/data
+    depends_on:
+      encrypt-war:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 准备：反编译保护验证
+  prepare-decompile-test:
+    build:
+      context: .
+      dockerfile: integration-test/docker/encryptor/Dockerfile
+      args:
+        USE_CHINA_MIRROR: ${USE_CHINA_MIRROR:-true}
+    container_name: prepare-decompile-test
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 准备反编译保护测试 ==="
+        # 安装 cfr 反编译器
+        apt-get update -qq && apt-get install -y -qq wget unzip > /dev/null
+        wget -q -O /tmp/cfr.jar https://github.com/leibnitz27/cfr/releases/download/0.152/cfr-0.152.jar
+
+        # 先测试原始 jar 可以反编译
+        echo "测试原始 jar 反编译..."
+        unzip -q /data/app.jar -d /tmp/original
+        java -jar /tmp/cfr.jar /tmp/original/io/github/ygqygy2/test/Main.class > /tmp/original-decompiled.java
+
+        if grep -q "public static void main" /tmp/original-decompiled.java; then
+          echo "✓ 原始 jar 可以反编译"
+        else
+          echo "✗ 原始 jar 反编译失败"
+          exit 1
+        fi
+
+        # 加密 jar
+        java -jar /app/classfinal.jar \
+          -file /data/app.jar \
+          -packages io.github.ygqygy2.test \
+          -pwd decompile123 \
+          -Y
+
+        # 尝试反编译加密后的 jar
+        echo "测试加密 jar 反编译..."
+        unzip -q /data/app-encrypted.jar -d /tmp/encrypted
+        java -jar /tmp/cfr.jar /tmp/encrypted/io/github/ygqygy2/test/Main.class > /tmp/encrypted-decompiled.java 2>&1 || true
+
+        echo "=== 原始反编译内容 ==="
+        head -20 /tmp/original-decompiled.java
+
+        echo "=== 加密后反编译内容 ==="
+        head -20 /tmp/encrypted-decompiled.java || echo "(无法反编译或内容不可读)"
+
+        # 验证加密后的内容不可读
+        if ! grep -q "public static void main" /tmp/encrypted-decompiled.java 2>/dev/null; then
+          echo "✓ 反编译保护有效"
+        else
+          echo "✗ 反编译保护可能无效"
+          exit 1
+        fi
+    volumes:
+      - test-data:/data
+    depends_on:
+      prepare-test-app:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+volumes:
+  maven-local-repo:
+    driver: local
+  test-data:
+    driver: local
+
+networks:
+  test-network:
+    driver: bridge

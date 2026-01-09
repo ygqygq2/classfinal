@@ -54,8 +54,18 @@ public class Main {
         //全部参数(需要加密的class路径,lib下的jar,包名,排除的class,依赖jar包路径,密码,机器码,需要加密的配置文件)
         String path=null,libjars,packages,excludeClass,classpath,password=null,code,cfgfiles;
 
-        //没有参数手动输入
-        if (args == null || args.length == 0) {
+        //优先从环境变量读取
+        String envFile = System.getenv("INPUT_FILE");
+        String envPackages = System.getenv("PACKAGES");
+        String envPassword = System.getenv("PASSWORD");
+        String envCode = System.getenv("CODE");
+        String envLibjars = System.getenv("LIBJARS");
+        String envExclude = System.getenv("EXCLUDE");
+        String envClasspath = System.getenv("CLASSPATH");
+        String envCfgfiles = System.getenv("CFGFILES");
+
+        //没有参数且没有环境变量时手动输入
+        if ((args == null || args.length == 0) && StrUtils.isEmpty(envFile)) {
             while (StrUtils.isEmpty(path)) {
                 Log.print("请输入需要加密的jar/war路径:");
                 path = scanner.nextLine();
@@ -84,7 +94,17 @@ public class Main {
                 Log.print("请输入加密密码:");
                 password = scanner.nextLine();
             }
-        }else{//在参数中取
+        } else if (!StrUtils.isEmpty(envFile)) {
+            // 从环境变量读取
+            path = envFile;
+            libjars = StrUtils.defaultIfEmpty(envLibjars, "");
+            packages = StrUtils.defaultIfEmpty(envPackages, "");
+            excludeClass = StrUtils.defaultIfEmpty(envExclude, "");
+            classpath = StrUtils.defaultIfEmpty(envClasspath, "");
+            password = StrUtils.defaultIfEmpty(envPassword, "");
+            code = StrUtils.defaultIfEmpty(envCode, "");
+            cfgfiles = StrUtils.defaultIfEmpty(envCfgfiles, "");
+        } else {//在参数中取
             path = cmd.getOptionValue("file", "");
             libjars = cmd.getOptionValue("libjars", "");
             packages = cmd.getOptionValue("packages", "");

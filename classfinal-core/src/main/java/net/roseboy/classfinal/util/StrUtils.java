@@ -44,6 +44,17 @@ public class StrUtils {
     }
 
     /**
+     * 如果字符串为空则返回默认值
+     *
+     * @param str 字符串
+     * @param defaultValue 默认值
+     * @return 字符串或默认值
+     */
+    public static String defaultIfEmpty(String str, String defaultValue) {
+        return isEmpty(str) ? defaultValue : str;
+    }
+
+    /**
      * 判断字符串是否为空
      *
      * @param str 字符串

@@ -1,0 +1,154 @@
+name: CI/CD with Docker Compose
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  integration-test:
+    name: Integration Tests (Docker Compose)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2-
+
+      - name: Run Integration Tests
+        env:
+          # CI 环境下不使用国内镜像源
+          USE_CHINA_MIRROR: false
+          # 可选的环境变量（某些测试可能需要）
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          CODE: ""
+        run: bash integration-test/run-ci-tests.sh
+
+      - name: Upload Test Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: encrypted-test-artifacts
+          path: |
+            integration-test/classfinal-test-app-*.jar
+            classfinal-fatjar/target/classfinal-fatjar-*.jar
+          retention-days: 7
+
+      - name: Cleanup
+        if: always()
+        run: |
+          if command -v docker-compose &> /dev/null; then
+            docker-compose down -v
+          else
+            docker compose down -v
+          fi
+
+  unit-test:
+    name: Unit Tests (Maven)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: ["8", "11", "17"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: "temurin"
+          cache: maven
+
+      - name: Run Unit Tests
+        run: mvn clean test -B
+
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports-jdk${{ matrix.java }}
+          path: |
+            **/target/surefire-reports/
+            **/target/site/
+          retention-days: 7
+
+  build-and-verify:
+    name: Build and Verify
+    runs-on: ubuntu-latest
+    needs: [integration-test, unit-test]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: "8"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Build with Maven
+        run: mvn clean install -B
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: classfinal-jars
+          path: |
+            classfinal-core/target/*.jar
+            classfinal-fatjar/target/*.jar
+            classfinal-maven-plugin/target/*.jar
+          retention-days: 30
+
+  release:
+    name: Release to Maven Central
+    runs-on: ubuntu-latest
+    needs: [build-and-verify]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: "8"
+          distribution: "temurin"
+          cache: maven
+          server-id: ossrh
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      - name: Publish to Maven Central
+        run: mvn clean deploy -P release -DskipTests -B
+        env:
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}

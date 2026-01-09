@@ -1,0 +1,106 @@
+name: Deploy to Maven Central
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Maven Central
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: "8"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Import GPG key
+        run: |
+          cat > /tmp/gpg-key.asc << 'EOF'
+          ${{ secrets.GPG_PRIVATE_KEY }}
+          EOF
+          gpg --batch --import /tmp/gpg-key.asc
+          rm -f /tmp/gpg-key.asc
+          gpg --list-secret-keys --keyid-format=long
+
+      - name: Configure Maven settings.xml
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << 'EOF'
+          <settings>
+            <servers>
+              <server>
+                <id>ossrh</id>
+                <username>${env.OSSRH_USERNAME}</username>
+                <password>${env.OSSRH_PASSWORD}</password>
+              </server>
+            </servers>
+            <profiles>
+              <profile>
+                <id>ossrh</id>
+                <activation>
+                  <activeByDefault>true</activeByDefault>
+                </activation>
+                <properties>
+                  <gpg.executable>gpg</gpg.executable>
+                  <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
+                </properties>
+              </profile>
+            </profiles>
+          </settings>
+          EOF
+
+      - name: Deploy SNAPSHOT to Maven Central
+        if: github.ref == 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
+        run: |
+          # 确保版本号包含 -SNAPSHOT
+          if grep -q '<version>.*-SNAPSHOT</version>' pom.xml; then
+            echo "✓ 版本包含 SNAPSHOT，开始部署..."
+            mvn clean deploy -DskipTests -B -P release
+          else
+            echo "⚠ 警告: 版本不包含 SNAPSHOT，跳过部署"
+            echo "请确保 pom.xml 中版本格式为: x.y.z-SNAPSHOT"
+            exit 1
+          fi
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Deploy Release to Maven Central
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          # 确保版本号不包含 -SNAPSHOT
+          if ! grep -q '<version>.*-SNAPSHOT</version>' pom.xml; then
+            echo "✓ 版本不包含 SNAPSHOT，开始发布..."
+            mvn clean deploy -DskipTests -B -P release
+          else
+            echo "⚠ 错误: Release 版本不应包含 SNAPSHOT"
+            echo "请在打 tag 前更新 pom.xml 版本号为正式版本"
+            exit 1
+          fi
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            classfinal-fatjar/target/classfinal-fatjar-*.jar
+            classfinal-maven-plugin/target/classfinal-maven-plugin-*.jar
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
