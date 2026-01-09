@@ -152,7 +152,7 @@ services:
     networks:
       - test-network
 
-  # curl 验证：加密应用 HTTP 接口
+  # curl 验证:加密应用 HTTP 接口
   verify-encrypted-app:
     image: curlimages/curl:latest
     container_name: verify-encrypted-app

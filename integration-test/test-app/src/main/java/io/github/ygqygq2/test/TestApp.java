@@ -1,8 +1,14 @@
 package io.github.ygqygq2.test;
 
 import com.google.gson.Gson;
+import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpExchange;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,7 +46,59 @@ public class TestApp {
         
         System.out.println("=== 所有测试通过 ===");
         System.out.println("=== All Tests Passed ===");
-        System.exit(0);
+        
+        // 启动 HTTP 服务器
+        try {
+            HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+            
+            // 健康检查接口
+            server.createContext("/health", new HttpHandler() {
+                @Override
+                public void handle(HttpExchange exchange) throws IOException {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("status", "UP");
+                    response.put("timestamp", System.currentTimeMillis());
+                    String jsonResponse = new Gson().toJson(response);
+                    
+                    exchange.getResponseHeaders().add("Content-Type", "application/json");
+                    exchange.sendResponseHeaders(200, jsonResponse.getBytes(StandardCharsets.UTF_8).length);
+                    OutputStream os = exchange.getResponseBody();
+                    os.write(jsonResponse.getBytes(StandardCharsets.UTF_8));
+                    os.close();
+                }
+            });
+            
+            // 测试接口
+            server.createContext("/test", new HttpHandler() {
+                @Override
+                public void handle(HttpExchange exchange) throws IOException {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("success", true);
+                    response.put("message", "所有测试通过");
+                    response.put("tests", new String[]{
+                        "基本操作", "反射", "Gson依赖", "中文支持", "配置文件"
+                    });
+                    String jsonResponse = new Gson().toJson(response);
+                    
+                    exchange.getResponseHeaders().add("Content-Type", "application/json");
+                    exchange.sendResponseHeaders(200, jsonResponse.getBytes(StandardCharsets.UTF_8).length);
+                    OutputStream os = exchange.getResponseBody();
+                    os.write(jsonResponse.getBytes(StandardCharsets.UTF_8));
+                    os.close();
+                }
+            });
+            
+            server.start();
+            System.out.println("\n=== HTTP Server started on port 8080 ===");
+            System.out.println("=== 服务器已启动在 8080 端口 ===");
+            
+            // 保持运行
+            Thread.currentThread().join();
+        } catch (Exception e) {
+            System.err.println("HTTP Server failed: " + e.getMessage());
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
     
     /**
