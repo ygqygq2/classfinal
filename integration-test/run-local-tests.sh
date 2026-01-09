@@ -148,7 +148,9 @@ function Main() {
     
     # Step 7: 测试正确密码运行
     Log_Step 7 "测试使用正确密码运行"
-    docker-compose run --rm test-encrypted-with-password
+    docker-compose up -d test-encrypted-with-password
+    docker-compose run --rm verify-encrypted-app
+    docker-compose stop test-encrypted-with-password
     Log_Success "加密应用使用正确密码运行成功"
     
     # Step 8: 测试错误密码（应该失败）

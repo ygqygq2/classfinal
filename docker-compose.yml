@@ -152,6 +152,30 @@ services:
     networks:
       - test-network
 
+  # curl 验证：加密应用 HTTP 接口
+  verify-encrypted-app:
+    image: curlimages/curl:latest
+    container_name: verify-encrypted-app
+    command:
+      - sh
+      - -c
+      - |
+        echo "=== 等待应用启动 ==="
+        sleep 10
+        echo "=== 验证健康检查接口 ==="
+        curl -f http://test-encrypted-with-password:8080/health || exit 1
+        echo ""
+        echo "✓ 健康检查成功"
+        echo "=== 验证测试接口 ==="
+        curl -f http://test-encrypted-with-password:8080/test || exit 1
+        echo ""
+        echo "✓ 测试接口成功"
+    depends_on:
+      test-encrypted-with-password:
+        condition: service_started
+    networks:
+      - test-network
+
   # 测试：使用错误密码运行加密应用（应该失败）
   test-encrypted-wrong-password:
     image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0

@@ -1,8 +1,15 @@
 package io.github.ygqygq2.test;
 
 import com.google.gson.Gson;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
+
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,8 +25,9 @@ public class TestApp {
     private static final String SECRET_KEY = "这是一个密钥12345";
     // 欢迎消息 - 包含中文字符
     private static final String WELCOME_MESSAGE = "欢迎使用 ClassFinal 测试应用";
+    private static final Gson gson = new Gson();
     
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         System.out.println("=== ClassFinal 集成测试应用 ===");
         System.out.println("=== ClassFinal Integration Test App ===");
         
@@ -40,7 +48,9 @@ public class TestApp {
         
         System.out.println("=== 所有测试通过 ===");
         System.out.println("=== All Tests Passed ===");
-        System.exit(0);
+        
+        // 启动 HTTP Server
+        startHttpServer();
     }
     
     /**
@@ -218,5 +228,64 @@ public class TestApp {
         public boolean 包含中文(String text) {
             return text.matches(".*[\\u4e00-\\u9fa5]+.*");
         }
+    }
+    
+    /**
+     * 启动 HTTP Server
+     */
+    private static void startHttpServer() throws IOException {
+        int port = 8080;
+        HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+        
+        // Health check endpoint
+        server.createContext("/health", new HttpHandler() {
+            @Override
+            public void handle(HttpExchange exchange) throws IOException {
+                Map<String, Object> response = new HashMap<>();
+                response.put("status", "UP");
+                response.put("application", "ClassFinal Test App");
+                response.put("message", WELCOME_MESSAGE);
+                response.put("encrypted", "true");
+                response.put("timestamp", System.currentTimeMillis());
+                
+                String json = gson.toJson(response);
+                byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+                
+                exchange.getResponseHeaders().add("Content-Type", "application/json; charset=UTF-8");
+                exchange.sendResponseHeaders(200, bytes.length);
+                OutputStream os = exchange.getResponseBody();
+                os.write(bytes);
+                os.close();
+            }
+        });
+        
+        // Test endpoint
+        server.createContext("/test", new HttpHandler() {
+            @Override
+            public void handle(HttpExchange exchange) throws IOException {
+                Map<String, Object> response = new HashMap<>();
+                response.put("calculator", new Calculator().add(10, 20));
+                response.put("secret", new SecretService().getSecret());
+                response.put("chinese", new ChineseTextProcessor().获取问候语());
+                response.put("validation", "所有功能正常");
+                
+                String json = gson.toJson(response);
+                byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+                
+                exchange.getResponseHeaders().add("Content-Type", "application/json; charset=UTF-8");
+                exchange.sendResponseHeaders(200, bytes.length);
+                OutputStream os = exchange.getResponseBody();
+                os.write(bytes);
+                os.close();
+            }
+        });
+        
+        server.setExecutor(null);
+        server.start();
+        System.out.println("\n=== HTTP Server Started ===");
+        System.out.println("Listening on port: " + port);
+        System.out.println("Health check: http://localhost:" + port + "/health");
+        System.out.println("Test endpoint: http://localhost:" + port + "/test");
+        System.out.println("=========================\n");
     }
 }

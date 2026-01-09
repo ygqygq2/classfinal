@@ -74,28 +74,38 @@ function Main() {
     docker-compose build classfinal
     Log_Success "ClassFinal image built successfully"
     
-    # Step 2: 构建测试应用
-    Log_Step 2 "Build Test Application"
+    # Step 2: 构建基础镜像（base）
+    Log_Step 2 "Build Base Image"
+    docker-compose build base
+    Log_Success "Base image built successfully"
+    
+    # Step 3: 构建测试应用构建器
+    Log_Step 3 "Build Test App Builder"
+    docker-compose build test-app-builder
+    Log_Success "Test app builder image built successfully"
+    
+    # Step 4: 构建测试应用
+    Log_Step 4 "Build Test Application"
     docker-compose build test-app
     Log_Success "Test application image built successfully"
     
-    # Step 3: 测试原始应用
-    Log_Step 3 "Test Original Application (Baseline)"
+    # Step 5: 测试原始应用
+    Log_Step 5 "Test Original Application (Baseline)"
     docker-compose run --rm test-original
     Log_Success "Original application runs correctly"
     
-    # Step 4: 准备测试应用
-    Log_Step 4 "Prepare Test Application"
+    # Step 6: 准备测试应用
+    Log_Step 6 "Prepare Test Application"
     docker-compose run --rm prepare-test-app
     Log_Success "Test application prepared"
     
-    # Step 5: 加密应用
-    Log_Step 5 "Encrypt Application"
+    # Step 7: 加密应用
+    Log_Step 7 "Encrypt Application"
     docker-compose run --rm encrypt-app
     Log_Success "Application encrypted successfully"
     
-    # Step 6: 测试无密码运行
-    Log_Step 6 "Test Encrypted App Without Password"
+    # Step 8: 测试无密码运行
+    Log_Step 8 "Test Encrypted App Without Password"
     set +e  # 允许命令失败
     docker-compose run --rm test-encrypted-no-password
     no_pwd_result=$?
