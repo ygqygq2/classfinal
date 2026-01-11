@@ -4,7 +4,7 @@ set -e
 echo "=== Building ClassFinal ==="
 
 # 执行 Maven 构建
-mvn clean install -DskipTests -f /workspace/pom.xml
+mvn clean install -DskipTests -f /workspace/pom.xml -B -q -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 echo "=== ClassFinal Build Complete ==="
 ls -lh /workspace/classfinal-fatjar/target/

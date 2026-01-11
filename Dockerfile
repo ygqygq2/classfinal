@@ -31,13 +31,14 @@ COPY classfinal-maven-plugin ./classfinal-maven-plugin
 COPY classfinal-web ./classfinal-web
 
 # 本地构建跳过 GPG 签名
-RUN mvn clean install -DskipTests -Dgpg.skip=true
+RUN mvn clean install -DskipTests -Dgpg.skip=true -B -q -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 # 运行时镜像
 FROM eclipse-temurin:8-jre-alpine
 
+LABEL org.opencontainers.image.source="https://github.com/ygqygq2/classfinal"
+LABEL org.opencontainers.image.description="ClassFinal - Java 类文件加密工具"
 LABEL maintainer="ygqygq2"
-LABEL description="ClassFinal - Java 类文件加密工具"
 LABEL version="2.0.0"
 LABEL org.opencontainers.image.source="https://github.com/ygqygq2/classfinal"
 LABEL org.opencontainers.image.description="ClassFinal - Java Class Encryption Tool"

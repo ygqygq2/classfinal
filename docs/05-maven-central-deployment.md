@@ -144,7 +144,7 @@ cat private-key.asc
 
 ```bash
 # 确保版本号以 -SNAPSHOT 结尾
-# 例如：<version>2.0.1-SNAPSHOT</version>
+# 例如：<version>2.0.0-SNAPSHOT</version>
 
 # 本地测试部署
 mvn clean deploy -DskipTests
@@ -160,15 +160,15 @@ git push origin master
 
 ```bash
 # 1. 更新版本号（去除 SNAPSHOT）
-# 编辑 pom.xml: 2.0.1-SNAPSHOT → 2.0.1
+# 编辑 pom.xml: 2.0.0-SNAPSHOT → 2.0.0
 
 # 2. 提交并打标签
 git add .
-git commit -m "Release version 2.0.1"
-git tag -a v2.0.1 -m "Release version 2.0.1"
+git commit -m "Release version 2.0.0"
+git tag -a v2.0.0 -m "Release version 2.0.0"
 
 # 3. 推送标签（触发 GitHub Actions 发布）
-git push origin v2.0.1
+git push origin v2.0.0
 
 # 4. GitHub Actions 会自动：
 #    - 构建项目
@@ -177,7 +177,7 @@ git push origin v2.0.1
 #    - 自动发布（无需手动在 Sonatype 确认）
 
 # 5. 更新为下一个 SNAPSHOT 版本
-# 编辑 pom.xml: 2.0.1 → 2.0.2-SNAPSHOT
+# 编辑 pom.xml: 2.0.0 → 2.0.2-SNAPSHOT
 git add .
 git commit -m "Prepare for next development iteration"
 git push origin master
@@ -221,7 +221,7 @@ git push origin master
 <dependency>
   <groupId>io.github.ygqygq2</groupId>
   <artifactId>classfinal-core</artifactId>
-  <version>2.0.1-SNAPSHOT</version>
+  <version>2.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -231,7 +231,7 @@ git push origin master
 <dependency>
   <groupId>io.github.ygqygq2</groupId>
   <artifactId>classfinal-core</artifactId>
-  <version>2.0.1</version>
+  <version>2.0.0</version>
 </dependency>
 ```
 

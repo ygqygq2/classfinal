@@ -27,7 +27,6 @@ bin/
 out/
 
 # VS Code
-.vscode/
 *.code-workspace
 
 # NetBeans

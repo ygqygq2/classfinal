@@ -1,5 +1,6 @@
 package net.roseboy.classfinal.util;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -116,7 +117,8 @@ public class StrUtils {
         System.arraycopy(bytes, 0, bytes0, 0, bytes.length);
         Charset cs = Charset.forName("UTF-8");
         ByteBuffer bb = ByteBuffer.allocate(bytes.length);
-        bb.put(bytes).flip();
+        bb.put(bytes);
+        ((Buffer) bb).flip();  // JDK 8 兼容性：显式转型为 Buffer
         CharBuffer cb = cs.decode(bb);
         return cb.array();
     }

@@ -23,7 +23,7 @@ public class MainController {
         Map<String, Object> result = new HashMap<>();
         result.put("status", "UP");
         result.put("application", "ClassFinal Web");
-        result.put("version", "2.0.1-SNAPSHOT");
+        result.put("version", "2.0.0-SNAPSHOT");
         result.put("timestamp", System.currentTimeMillis());
         return result;
     }

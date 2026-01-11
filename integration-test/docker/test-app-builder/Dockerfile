@@ -4,8 +4,9 @@ FROM maven:3.8-openjdk-8
 
 ARG USE_CHINA_MIRROR=true
 
+LABEL org.opencontainers.image.source="https://github.com/ygqygq2/classfinal"
+LABEL org.opencontainers.image.description="ClassFinal Test Application Build Environment"
 LABEL maintainer="ygqygq2"
-LABEL description="ClassFinal Test Application Build Environment"
 
 # 配置 Maven 使用阿里云镜像（可选）
 RUN if [ "$USE_CHINA_MIRROR" = "true" ]; then \

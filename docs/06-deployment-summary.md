@@ -40,14 +40,14 @@
 ```bash
 # 1. 确保版本号包含 -SNAPSHOT
 # 当前: <version>2.0.0</version>
-# 应改为: <version>2.0.1-SNAPSHOT</version>
+# 应改为: <version>2.0.0-SNAPSHOT</version>
 
 # 2. 修改 pom.xml
-sed -i 's/<version>2.0.0<\/version>/<version>2.0.1-SNAPSHOT<\/version>/g' pom.xml
+sed -i 's/<version>2.0.0<\/version>/<version>2.0.0-SNAPSHOT<\/version>/g' pom.xml
 
 # 3. 提交并推送
 git add pom.xml
-git commit -m "Prepare for 2.0.1-SNAPSHOT development"
+git commit -m "Prepare for 2.0.0-SNAPSHOT development"
 git push origin master
 
 # 4. GitHub Actions 自动部署到 SNAPSHOT 仓库
@@ -57,20 +57,20 @@ git push origin master
 
 ```bash
 # 1. 更新版本号（去除 SNAPSHOT）
-sed -i 's/<version>2.0.1-SNAPSHOT<\/version>/<version>2.0.1<\/version>/g' pom.xml
+sed -i 's/<version>2.0.0-SNAPSHOT<\/version>/<version>2.0.0<\/version>/g' pom.xml
 
 # 2. 提交并打标签
 git add pom.xml
-git commit -m "Release version 2.0.1"
-git tag -a v2.0.1 -m "Release version 2.0.1"
+git commit -m "Release version 2.0.0"
+git tag -a v2.0.0 -m "Release version 2.0.0"
 
 # 3. 推送标签（触发发布）
-git push origin v2.0.1
+git push origin v2.0.0
 
 # 4. GitHub Actions 自动发布到 Maven Central
 
 # 5. 准备下一个开发版本
-sed -i 's/<version>2.0.1<\/version>/<version>2.0.2-SNAPSHOT<\/version>/g' pom.xml
+sed -i 's/<version>2.0.0<\/version>/<version>2.0.2-SNAPSHOT<\/version>/g' pom.xml
 git add pom.xml
 git commit -m "Prepare for next development iteration"
 git push origin master
@@ -129,7 +129,7 @@ mvn clean verify -DskipTests -P release
 <dependency>
   <groupId>io.github.ygqygq2</groupId>
   <artifactId>classfinal-core</artifactId>
-  <version>2.0.1-SNAPSHOT</version>
+  <version>2.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -139,7 +139,7 @@ mvn clean verify -DskipTests -P release
 <dependency>
   <groupId>io.github.ygqygq2</groupId>
   <artifactId>classfinal-core</artifactId>
-  <version>2.0.1</version>
+  <version>2.0.0</version>
 </dependency>
 ```
 
@@ -148,8 +148,8 @@ mvn clean verify -DskipTests -P release
 1. **更新版本号到 SNAPSHOT**
 
    ```bash
-   # 修改所有 pom.xml 的版本为 2.0.1-SNAPSHOT
-   find . -name pom.xml -exec sed -i 's/<version>2.0.0<\/version>/<version>2.0.1-SNAPSHOT<\/version>/g' {} \;
+   # 修改所有 pom.xml 的版本为 2.0.0-SNAPSHOT
+   find . -name pom.xml -exec sed -i 's/<version>2.0.0<\/version>/<version>2.0.0-SNAPSHOT<\/version>/g' {} \;
    ```
 
 2. **测试集成测试**
@@ -162,7 +162,7 @@ mvn clean verify -DskipTests -P release
 
    ```bash
    git add .
-   git commit -m "chore: update to 2.0.1-SNAPSHOT and add Maven Central deployment"
+   git commit -m "chore: update to 2.0.0-SNAPSHOT and add Maven Central deployment"
    git push origin master
    ```
 
@@ -174,7 +174,7 @@ mvn clean verify -DskipTests -P release
 5. **准备首次 Release**
    - 测试 SNAPSHOT 版本正常工作
    - 更新 CHANGELOG.md
-   - 按照上述 Release 流程发布 v2.0.1
+   - 按照上述 Release 流程发布 v2.0.0
 
 ## 注意事项
 

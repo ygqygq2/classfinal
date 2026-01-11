@@ -260,5 +260,5 @@ A: 当前使用 AES-256，可扩展支持其他算法。
 
 ---
 
-**维护者**: [@ygqygq2](https://github.com/ygqygy2)  
+**维护者**: [@ygqygq2](https://github.com/ygqygq2)  
 **Star ⭐ 支持**: 如果这个项目对你有帮助，请给个 Star！

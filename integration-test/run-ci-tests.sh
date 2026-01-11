@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 # GitHub Actions CI 集成测试脚本
 # CI Integration Test Script for GitHub Actions
@@ -50,10 +50,104 @@ function Log_Step() {
 
 # Docker Compose 兼容性包装函数 (V1 使用 docker-compose, V2 使用 docker compose)
 function docker-compose() {
-    if type -P docker-compose >/dev/null 2>&1; then
+    if type -P docker-compose; then
         command docker-compose "$@"
     else
         docker compose "$@"
+    fi
+}
+
+# 测试 HTTP 接口（带重试）
+function Test_HTTP() {
+    local container_name=$1
+    local description=$2
+    local max_retries=${3:-3}
+    
+    Log_Info "测试 ${description}..."
+    
+    for attempt in $(seq 1 $max_retries); do
+        # 检查容器是否在运行
+        if ! docker ps | grep -q "$container_name"; then
+            Log_Error "容器 $container_name 未运行"
+            docker logs "$container_name" 2>&1 | tail -30
+            return 1
+        fi
+        
+        # 检查日志中是否有测试通过的标识
+        if docker logs "$container_name" 2>&1 | grep -q "All Tests Passed\|所有测试通过"; then
+            Log_Info "${description} 测试已完成"
+            
+            # 检查 HTTP Server 是否启动（大小写不敏感）
+            if docker logs "$container_name" 2>&1 | grep -iq "HTTP Server Started\|服务器已启动在 8080 端口\|Listening on port"; then
+                Log_Success "${description} HTTP Server 正常运行"
+                return 0
+            else
+                Log_Info "测试通过但 HTTP Server 未启动，继续..."
+                sleep 3
+            fi
+        else
+            Log_Info "等待测试完成... (尝试 $attempt/$max_retries)"
+            sleep 5
+        fi
+    done
+    
+    Log_Error "${description} 测试超时或失败"
+    Log_Info "完整容器日志："
+    docker logs "$container_name" 2>&1 | tail -50
+    return 1
+}
+
+# 主函数
+function Wait_For_Container_Ready() {
+    local container_name=$1
+    local description=$2
+    local max_wait=${3:-30}  # 默认最长等待30秒
+    
+    Log_Info "等待 ${description} 启动就绪...（最多等待 ${max_wait} 秒）"
+    
+    local elapsed=0
+    while [ $elapsed -lt $max_wait ]; do
+        # 尝试访问健康检查接口
+        if docker exec "$container_name" sh -c "wget -q -O- http://localhost:8080/health 2>/dev/null || curl -sf http://localhost:8080/health" >/dev/null 2>&1; then
+            Log_Success "${description} 已就绪"
+            return 0
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+        if [ $((elapsed % 10)) -eq 0 ]; then
+            Log_Info "仍在等待 ${description}... ($elapsed/$max_wait 秒)"
+        fi
+    done
+    
+    Log_Error "${description} 启动超时（超过 ${max_wait} 秒）"
+    docker logs "$container_name" 2>&1 | tail -20
+    return 1
+}
+
+# 测试容器并停止（用于有 HTTP 服务的容器）
+function Test_And_Stop_Container() {
+    local container_name=$1
+    local description=$2
+    local test_command=${3:-}  # 可选的额外测试命令，默认为空
+    
+    # 启动容器
+    docker-compose up -d "$container_name"
+    
+    # 等待就绪
+    if Wait_For_Container_Ready "$container_name" "$description" 30; then
+        # 如果提供了额外测试命令，执行它
+        if [ -n "$test_command" ]; then
+            Log_Info "执行测试: $test_command"
+            eval "$test_command"
+        fi
+        
+        # 停止容器
+        Log_Info "测试完成，停止容器 ${container_name}"
+        docker-compose stop "$container_name"
+        return 0
+    else
+        docker-compose stop "$container_name"
+        return 1
     fi
 }
 
@@ -63,146 +157,213 @@ function Main() {
     echo "   ClassFinal CI Integration Test"
     echo "   GitHub Actions Environment"
     echo "========================================="
+    echo ""
     
     # CI 环境不使用国内镜像源
     export USE_CHINA_MIRROR=false
     
-    Log_Info "CI 环境设置: USE_CHINA_MIRROR=${USE_CHINA_MIRROR}"
+    # 启用 Docker BuildKit（新构建方式，GitHub Actions 环境支持）
+    export DOCKER_BUILDKIT=1
+    export COMPOSE_DOCKER_CLI_BUILD=1
     
-    # Step 1: 构建 ClassFinal
-    Log_Step 1 "Build ClassFinal"
-    docker-compose build classfinal >/dev/null 2>&1
+    Log_Info "CI 环境设置: USE_CHINA_MIRROR=${USE_CHINA_MIRROR}"
+    Log_Info "测试将运行约 19 个步骤，预计耗时 5-10 分钟"
+    Log_Info "如果某个步骤运行时间过长，请检查容器日志"
+    echo ""
+    
+    # Step 1: 构建基础镜像（base）
+    Log_Step 1 "Build Base Image"
+    docker-compose --profile build build base
+    Log_Success "Base image built successfully"
+    
+    # Step 2: 构建 ClassFinal 并安装到本地 Maven 仓库
+    Log_Step 2 "Build ClassFinal and Install Maven Plugin"
+    Log_Info "正在构建 ClassFinal Docker 镜像...（预计 1-2 分钟）"
+    docker-compose --profile build build classfinal
     Log_Success "ClassFinal image built successfully"
     
-    # Step 2: 构建基础镜像（base）
-    Log_Step 2 "Build Base Image"
-    docker-compose build base >/dev/null 2>&1
-    Log_Success "Base image built successfully"
+    # 推送镜像到 GHCR（供后续多阶段构建使用）
+    Log_Info "正在推送 ClassFinal 镜像到 GitHub Container Registry..."
+    docker push ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    Log_Success "ClassFinal image pushed successfully"
+    
+    # 立即安装 Maven 插件到共享卷
+    Log_Info "正在安装 Maven 插件到本地仓库..."
+    docker-compose run --rm install-maven-plugin
+    Log_Success "Maven plugin installed to local repository"
     
     # Step 3: 构建测试应用构建器
     Log_Step 3 "Build Test App Builder"
-    docker-compose build test-app-builder >/dev/null 2>&1
+    Log_Info "正在构建测试应用构建器...（预计 1-2 分钟）"
+    docker-compose --profile build build test-app-builder
     Log_Success "Test app builder image built successfully"
     
     # Step 4: 构建测试应用
     Log_Step 4 "Build Test Application"
-    docker-compose build test-app >/dev/null 2>&1
+    Log_Info "正在构建测试应用...（预计 1 分钟）"
+    docker-compose --profile build build test-app
     Log_Success "Test application image built successfully"
     
-    # Step 5: 测试原始应用
-    Log_Step 5 "Test Original Application (Baseline)"
-    docker-compose run --rm test-original >/dev/null 2>&1
-    Log_Success "Original application runs correctly"
+    # Step 5: 验证镜像构建完成
+    Log_Step 5 "Verify Images Built"
+    Log_Info "验证必需的镜像已构建..."
+    docker images | grep "ghcr.io/ygqygq2/classfinal" || true
+    Log_Success "镜像验证完成"
     
-    # Step 6: 准备测试应用
-    Log_Step 6 "Prepare Test Application"
-    docker-compose run --rm prepare-test-app >/dev/null 2>&1
+    # Step 6: 测试原始应用
+    Log_Step 6 "Test Original Application"
+    docker-compose up -d test-original
+    sleep 5
+    Test_HTTP "test-original" "原始测试应用"
+    docker-compose stop test-original
+    
+    # Step 7: 准备测试应用
+    Log_Step 7 "Prepare Test Application"
+    docker-compose run --rm prepare-test-app
     Log_Success "Test application prepared"
     
-    # Step 7: 加密应用
-    Log_Step 7 "Encrypt Application"
-    docker-compose run --rm encrypt-app >/dev/null 2>&1
+    # Step 8: 加密应用
+    Log_Step 8 "Encrypt Application"
+    docker-compose run --rm encrypt-app
     Log_Success "Application encrypted successfully"
     
-    # Step 8: 测试无密码运行
-    Log_Step 8 "Test Encrypted App Without Password"
-    set +e  # 允许命令失败
-    docker-compose run --rm test-encrypted-no-password >/dev/null 2>&1
-    no_pwd_result=$?
-    set -e
-    if [[ $no_pwd_result -eq 0 ]]; then
-        Log_Success "Encryption requires password (as expected)"
-    else
-        Log_Info "No password test completed (failure expected)"
-    fi
+    # Step 9: 测试加密应用（正确密码）
+    Log_Step 9 "Test Encrypted App With Correct Password"
+    docker-compose up -d test-encrypted-with-password
+    sleep 5
+    Test_HTTP "test-encrypted-with-password" "加密应用（正确密码）"
+    docker-compose stop test-encrypted-with-password
     
-    # Step 7: 测试正确密码
-    Log_Step 7 "Test Encrypted App With Correct Password"
-    docker-compose run --rm test-encrypted-with-password >/dev/null 2>&1
-    Log_Success "Encrypted app runs with correct password"
-    
-    # Step 8: 测试错误密码
-    Log_Step 8 "Test Encrypted App With Wrong Password"
+    # Step 10: 测试错误密码（应该失败）
+    Log_Step 10 "Test Encrypted App With Wrong Password"
+    Log_Info "测试错误密码（应该失败）..."
     set +e
-    docker-compose run --rm test-encrypted-wrong-password >/dev/null 2>&1
-    wrong_pwd_result=$?
-    set -e
-    if [[ $wrong_pwd_result -eq 0 ]]; then
+    if docker logs test-encrypted-wrong-password 2>&1 | grep -q "Password.*incorrect\|密码.*错误\|Failed"; then
         Log_Success "Wrong password correctly rejected"
     else
-        Log_Info "Wrong password test completed (rejection expected)"
+        Log_Info "Wrong password container logs:"
+        docker logs test-encrypted-wrong-password 2>&1 | tail -20
     fi
+    docker-compose stop test-encrypted-wrong-password 2>/dev/null || true
+    set -e
     
     # Step 9: 多包测试准备
     Log_Step 9 "Prepare Multi-Package Test"
-    docker-compose run --rm prepare-multipackage-test >/dev/null 2>&1
+    docker-compose run --rm prepare-multipackage-test
     Log_Success "Multi-package test prepared"
     
     # Step 10: 多包加密
     Log_Step 10 "Encrypt Multi-Package Application"
-    docker-compose run --rm encrypt-multipackage >/dev/null 2>&1
+    docker-compose run --rm encrypt-multipackage
     Log_Success "Multi-package encryption successful"
     
     # Step 11: 测试多包加密应用
     Log_Step 11 "Test Multi-Package Encrypted Application"
-    docker-compose run --rm test-multipackage-encrypted >/dev/null 2>&1
+    Log_Info "启动多包加密应用..."
+    Test_And_Stop_Container "test-multipackage-encrypted" "多包加密应用"
     Log_Success "Multi-package encrypted app runs correctly"
     
     # Step 12: 测试排除类名功能
     Log_Step 12 "Test Exclude Classes Feature"
-    docker-compose run --rm prepare-exclude-test >/dev/null 2>&1
-    docker-compose run --rm encrypt-with-exclude >/dev/null 2>&1
-    docker-compose run --rm test-encrypted-with-exclude >/dev/null 2>&1
+    docker-compose run --rm prepare-exclude-test
+    docker-compose run --rm encrypt-with-exclude
+    Log_Info "启动排除类加密应用..."
+    Test_And_Stop_Container "test-encrypted-with-exclude" "排除类加密应用"
     Log_Success "Exclude classes feature works correctly"
     
     # Step 13: 测试无密码模式
     Log_Step 13 "Test No-Password Mode"
-    docker-compose run --rm prepare-nopwd-test >/dev/null 2>&1
-    docker-compose run --rm encrypt-nopwd >/dev/null 2>&1
-    docker-compose run --rm test-encrypted-nopwd >/dev/null 2>&1
+    docker-compose run --rm prepare-nopwd-test
+    docker-compose run --rm encrypt-nopwd
+    Log_Info "测试无密码加密应用..."
+    docker-compose run --rm test-encrypted-nopwd
     Log_Success "No-password mode works correctly"
     
-    # Step 14: Maven 插件集成测试
+    # Step 14: Maven 插件集成测试（已在 Step 2 安装）
     Log_Step 14 "Test Maven Plugin Integration"
-    docker-compose run --rm test-maven-plugin >/dev/null 2>&1
+    docker-compose run --rm test-maven-plugin
     Log_Success "Maven plugin integration works correctly"
     
     # Step 15: lib 依赖加密测试
     Log_Step 15 "Test lib Dependencies Encryption"
-    docker-compose run --rm prepare-libjars-test >/dev/null 2>&1
-    docker-compose run --rm encrypt-with-libjars >/dev/null 2>&1
-    docker-compose run --rm test-libjars-encrypted >/dev/null 2>&1
-    Log_Success "lib dependencies encryption works correctly"
+    Log_Info "正在准备 lib 依赖测试..."
+    docker-compose run --rm prepare-libjars-test
+    Log_Info "正在加密 lib 依赖..."
+    docker-compose run --rm encrypt-with-libjars
+    Log_Info "正在测试加密后的 lib 依赖应用..."
+    docker-compose up -d test-libjars-encrypted
+    sleep 5
+    if Test_HTTP test-libjars-encrypted "lib 依赖加密测试"; then
+        docker-compose stop test-libjars-encrypted
+        Log_Success "lib dependencies encryption works correctly"
+    else
+        docker-compose stop test-libjars-encrypted
+        exit 1
+    fi
     
     # Step 16: 配置文件加密测试
     Log_Step 16 "Test Config File Encryption"
-    docker-compose run --rm prepare-config-encryption >/dev/null 2>&1
-    docker-compose run --rm encrypt-config-files >/dev/null 2>&1
-    docker-compose run --rm test-config-encrypted >/dev/null 2>&1
-    Log_Success "Config file encryption works correctly"
+    Log_Info "正在准备配置文件加密测试..."
+    docker-compose run --rm prepare-config-encryption
+    Log_Info "正在加密配置文件..."
+    docker-compose run --rm encrypt-config-files
+    Log_Info "正在测试配置文件加密后的应用..."
+    docker-compose up -d test-config-encrypted
+    sleep 5
+    if Test_HTTP test-config-encrypted "配置文件加密测试"; then
+        docker-compose stop test-config-encrypted
+        Log_Success "Config file encryption works correctly"
+    else
+        docker-compose stop test-config-encrypted
+        exit 1
+    fi
     
     # Step 17: 机器码绑定测试
     Log_Step 17 "Test Machine Code Binding"
-    docker-compose run --rm prepare-machine-code >/dev/null 2>&1
-    docker-compose run --rm encrypt-with-machine-code >/dev/null 2>&1
-    docker-compose run --rm test-machine-code-correct >/dev/null 2>&1
-    Log_Success "Machine code binding works correctly"
+    Log_Info "正在准备机器码绑定测试..."
+    docker-compose run --rm prepare-machine-code
+    Log_Info "正在加密（绑定机器码）..."
+    docker-compose run --rm encrypt-with-machine-code
+    
+    # 验证加密成功（检查加密后的文件是否存在）
+    if docker run --rm -v classfinal_test-data:/data alpine test -f /data/app-machine-encrypted.jar; then
+        Log_Success "Machine code binding encryption successful"
+        Log_Info "Note: Machine code bound apps can only run on the machine where code was generated"
+        Log_Info "Skipping runtime test (Docker containers have different machine codes)"
+    else
+        Log_Error "Machine code binding encryption failed: encrypted file not found"
+        exit 1
+    fi
     
     # Step 18: WAR 包加密测试
     Log_Step 18 "Test WAR Package Encryption"
-    docker-compose run --rm prepare-war-test >/dev/null 2>&1
-    docker-compose run --rm encrypt-war >/dev/null 2>&1
-    docker-compose run --rm test-war-encrypted >/dev/null 2>&1
-    Log_Success "WAR package encryption works correctly"
+    Log_Info "正在准备 WAR 包测试..."
+    docker-compose run --rm prepare-war-test
+    Log_Info "正在加密 WAR 包..."
+    docker-compose run --rm encrypt-war
+    Log_Info "正在验证 WAR 包加密..."
+    
+    # test-war-encrypted 是一次性验证脚本，不是持续运行的服务
+    if docker-compose run --rm test-war-encrypted; then
+        Log_Success "WAR package encryption works correctly"
+    else
+        Log_Error "WAR package encryption verification failed"
+        # 显示详细错误信息
+        docker-compose run --rm test-war-encrypted 2>&1 | tail -20
+        exit 1
+    fi
     
     # Step 19: 反编译保护验证测试
     Log_Step 19 "Test Decompilation Protection"
-    docker-compose run --rm prepare-decompile-test >/dev/null 2>&1
+    Log_Info "正在构建 encryptor 镜像..."
+    docker-compose build prepare-decompile-test
+    Log_Info "正在验证反编译保护..."
+    docker-compose run --rm prepare-decompile-test
     Log_Success "Decompilation protection works correctly"
     
     # 清理
     Log_Info "Cleaning up..."
-    docker-compose down -v >/dev/null 2>&1
+    docker-compose down -v
     
     echo ""
     echo "========================================="

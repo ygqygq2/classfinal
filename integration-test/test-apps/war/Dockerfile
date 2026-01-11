@@ -27,12 +27,12 @@ RUN if [ "$USE_CHINA_MIRROR" = "true" ]; then \
 COPY integration-test/test-app/pom.xml .
 COPY integration-test/test-app/src ./src
 
-RUN mvn clean package
+RUN mvn clean package -B -q -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 # 运行时镜像
 FROM eclipse-temurin:8-jre-alpine
 
-LABEL maintainer="ygqygy2"
+LABEL maintainer="ygqygq2"
 LABEL description="ClassFinal 集成测试应用"
 LABEL org.opencontainers.image.source="https://github.com/ygqygq2/classfinal"
 LABEL org.opencontainers.image.description="ClassFinal Integration Test Application"

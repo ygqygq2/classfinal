@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 # HTTP 接口验证脚本
 # Verify HTTP endpoints of encrypted applications

@@ -1,14 +1,17 @@
 #!/bin/bash
 set -e
 
-echo "=== Building Test Application ==="
+# 这个脚本在当前工作目录执行 Maven 构建
+# 工作目录由 docker-compose 的 working_dir 指定
 
-mvn clean package
-
-echo "=== Test App Build Complete ==="
-ls -lh /workspace/integration-test/test-app/target/
-
-# 复制 JAR 到集成测试目录
-cp /workspace/integration-test/test-app/target/*.jar /workspace/integration-test/
+if [ "$1" = "build" ]; then
+  echo "=== Building Application in $(pwd) ==="
+  mvn clean package -B -q -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+  echo "=== Build Complete ==="
+  if [ -d target ]; then
+    ls -lh target/*.jar 2>/dev/null || echo "No JAR files found"
+  fi
+  shift
+fi
 
 exec "$@"
