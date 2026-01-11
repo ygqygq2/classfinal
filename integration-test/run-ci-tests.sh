@@ -21,6 +21,10 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 cd "${PROJECT_ROOT}"
 
+# 获取当前项目版本（去除 -SNAPSHOT）
+CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+DOCKER_VERSION="${CURRENT_VERSION%-SNAPSHOT}"
+
 # 颜色定义（CI 环境也支持颜色）
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -184,7 +188,7 @@ function Main() {
     
     # 推送镜像到 GHCR（供后续多阶段构建使用）
     Log_Info "正在推送 ClassFinal 镜像到 GitHub Container Registry..."
-    docker push ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    docker push "ghcr.io/ygqygq2/classfinal/classfinal:${DOCKER_VERSION}"
     Log_Success "ClassFinal image pushed successfully"
     
     # 立即安装 Maven 插件到共享卷

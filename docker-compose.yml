@@ -36,7 +36,7 @@ services:
       args:
         # 本地开发默认使用国内镜像源,CI 环境设置 USE_CHINA_MIRROR=false
         USE_CHINA_MIRROR: ${USE_CHINA_MIRROR:-true}
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
     container_name: classfinal
     environment:
       - SONATYPE_USERNAME=${SONATYPE_USERNAME:-}
@@ -93,7 +93,7 @@ services:
       - test-network
   # 加密测试应用
   encrypt-app:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
     pull_policy: never
     container_name: encrypt-app
     command: ["encrypt"]
@@ -137,7 +137,7 @@ services:
 
   # 测试：使用 JavaAgent 和密码运行加密应用（应该成功）
   test-encrypted-with-password:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
     pull_policy: never
     container_name: test-encrypted-with-password
     command: ["agent"]
@@ -184,7 +184,7 @@ services:
 
   # 测试：使用错误密码运行加密应用（应该失败）
   test-encrypted-wrong-password:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
     pull_policy: never
     container_name: test-encrypted-wrong-password
     volumes:
@@ -226,7 +226,7 @@ services:
 
   # 测试：多包加密
   encrypt-multipackage:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
     pull_policy: never
     container_name: encrypt-multipackage
     command: ["encrypt"]
@@ -245,7 +245,7 @@ services:
 
   # 测试：多包加密应用运行
   test-multipackage-encrypted:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
     pull_policy: never
     container_name: test-multipackage-encrypted
     command: ["agent"]
@@ -278,7 +278,7 @@ services:
       - test-network
 
   encrypt-with-exclude:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
     pull_policy: never
     container_name: encrypt-with-exclude
     command:
@@ -301,7 +301,7 @@ services:
       - test-network
 
   test-encrypted-with-exclude:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
     pull_policy: never
     container_name: test-encrypted-with-exclude
     command: ["agent"]
@@ -334,7 +334,7 @@ services:
       - test-network
 
   encrypt-nopwd:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
     pull_policy: never
     container_name: encrypt-nopwd
     command:
@@ -356,7 +356,7 @@ services:
       - test-network
 
   test-encrypted-nopwd:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
     pull_policy: never
     container_name: test-encrypted-nopwd
     command:
@@ -411,9 +411,9 @@ services:
 
         # 只构建主项目模块，排除 integration-test 目录
         # 使用 -f 直接指定根 pom，避免 Maven 扫描 test-apps 中的 pom.xml
-        mvn clean install -f pom.xml -pl classfinal-core,classfinal-maven-plugin -am -DskipTests -Dgpg.skip=true -Dmaven.javadoc.skip=true -B -q -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn > /dev/null
+        mvn clean install -f pom.xml -pl classfinal-core,classfinal-maven-plugin -am -DskipTests -Dgpg.skip=true -B -q -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
         echo "✓ Maven 插件已安装到本地仓库"
-        ls -la /root/.m2/repository/io/github/ygqygq2/
+        ls -la /root/.m2/repository/io/github/ygqygq2/ || echo "安装可能失败"
     volumes:
       - .:/workspace
       - maven-local-repo:/root/.m2/repository
@@ -442,8 +442,8 @@ services:
         echo "检查 Maven 仓库中的 SNAPSHOT..."
         ls -la /root/.m2/repository/io/github/ygqygq2/ || echo "目录不存在"
         # 执行构建
-        echo "正在构建（Maven 日志已隐藏）..."
-        mvn clean package -Dgpg.skip=true -B -q -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn > /dev/null
+        echo "正在构建..."
+        mvn clean package -Dgpg.skip=true -B
         if [ -f target/classfinal-test-maven-plugin-*-encrypted.jar ]; then
           echo "✓ Maven 插件加密成功"
           cp target/classfinal-test-maven-plugin-*-encrypted.jar /data/app-maven-encrypted.jar
@@ -502,7 +502,7 @@ services:
 
   # 加密：使用 -libjars 参数加密 lib 依赖
   encrypt-with-libjars:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
     container_name: encrypt-with-libjars
     command:
       - /bin/sh
@@ -571,7 +571,7 @@ services:
 
   # 加密：加密配置文件
   encrypt-config-files:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
     container_name: encrypt-config-files
     command:
       - /bin/sh
@@ -621,7 +621,7 @@ services:
 
   # 准备：机器码绑定测试
   prepare-machine-code:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
     container_name: prepare-machine-code
     command:
       - /bin/sh
@@ -647,7 +647,7 @@ services:
 
   # 加密：使用机器码绑定
   encrypt-with-machine-code:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
     container_name: encrypt-with-machine-code
     command:
       - /bin/sh
@@ -719,7 +719,7 @@ services:
 
   # 加密：WAR 包加密
   encrypt-war:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
     container_name: encrypt-war
     command:
       - /bin/sh
