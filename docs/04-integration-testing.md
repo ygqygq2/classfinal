@@ -31,7 +31,7 @@ docker-compose down -v
 
 1. classfinal-builder
    ↓ 编译 ClassFinal 项目
-   └── 生成 classfinal-fatjar-1.2.2.jar
+   └── 生成 classfinal-2.0.0.jar
 
 2. test-app-builder
    ↓ 编译测试应用
@@ -60,7 +60,7 @@ docker-compose down -v
 
 - **镜像**: maven:3.8-openjdk-8
 - **功能**: 编译 ClassFinal 主项目
-- **输出**: `classfinal-fatjar/target/classfinal-fatjar-1.2.2.jar`
+- **输出**: `classfinal-fatjar/target/classfinal-2.0.0.jar`
 
 ### test-app-builder
 

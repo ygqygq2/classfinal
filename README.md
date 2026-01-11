@@ -1,6 +1,6 @@
 # ClassFinal
 
-[![Maven Central](https://img.shields.io/badge/Maven%20Central-2.0.0-blue.svg)](https://search.maven.org/artifact/io.github.ygqygq2/classfinal)
+[![Maven Central](https://img.shields.io/badge/Maven%20Central-2.0.0-blue.svg)](https://central.sonatype.com/artifact/io.github.ygqygq2/classfinal/2.0.0)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-1.8+-orange.svg)](https://www.oracle.com/java/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://github.com/ygqygq2/classfinal/pkgs/container/classfinal%2Fclassfinal)
@@ -53,7 +53,7 @@ docker pull ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
 ### 加密 JAR
 
 ```bash
-java -jar classfinal-fatjar.jar \
+java -jar classfinal-2.0.0.jar \
   -file yourproject.jar \
   -packages com.yourpackage \
   -pwd yourpassword \
@@ -142,7 +142,7 @@ docker run --rm \
 适用于不希望暴露密码的场景，加密时使用 `-pwd #`:
 
 ```bash
-java -jar classfinal-fatjar.jar -file app.jar -packages com.example -pwd # -Y
+java -jar classfinal-2.0.0.jar -file app.jar -packages com.example -pwd # -Y
 ```
 
 运行时添加 `-nopwd` 参数:
@@ -154,12 +154,12 @@ java -javaagent:app-encrypted.jar='-nopwd' -jar app-encrypted.jar
 
 1. 在目标机器生成机器码:
 ```bash
-java -jar classfinal-fatjar.jar -C
+java -jar classfinal-2.0.0.jar -C
 ```
 
 2. 加密时绑定机器码:
 ```bash
-java -jar classfinal-fatjar.jar \
+java -jar classfinal-2.0.0.jar \
   -file app.jar \
   -packages com.example \
   -pwd yourpassword \
@@ -175,13 +175,13 @@ java -jar classfinal-fatjar.jar \
 
 **Linux (catalina.sh)**:
 ```bash
-CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-fatjar.jar='-pwd yourpassword'"
+CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-2.0.0.jar='-pwd yourpassword'"
 export CATALINA_OPTS
 ```
 
 **Windows (catalina.bat)**:
 ```bat
-set JAVA_OPTS="-javaagent:C:\path\to\classfinal-fatjar.jar='-pwd yourpassword'"
+set JAVA_OPTS="-javaagent:C:\path\to\classfinal-2.0.0.jar='-pwd yourpassword'"
 ```
 
 ## 安全建议

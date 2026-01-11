@@ -145,7 +145,7 @@ cd integration-test/test-app
 mvn clean package
 
 # 2. 加密测试
-java -jar ../../classfinal-fatjar/target/classfinal-fatjar-*.jar \
+java -jar ../../classfinal-fatjar/target/classfinal-*.jar \
   -file target/classfinal-test-app-*.jar \
   -packages io.github.ygqygq2.test \
   -pwd test123 \
@@ -292,7 +292,7 @@ git commit -m "docs: 更新 Docker 使用文档"
 export CLASSFINAL_DEBUG=true
 
 # 运行加密并查看详细输出
-java -jar classfinal-fatjar.jar -file app.jar -packages com.example -pwd test -Y
+java -jar classfinal-2.0.0.jar -file app.jar -packages com.example -pwd test -Y
 ```
 
 ### 调试 JavaAgent

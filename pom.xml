@@ -22,7 +22,7 @@
 
 
     <name>ClassFinal</name>
-    <description>java class文件加密（社区维护版，基于 roseboy/classfinal 1.2.1）</description>
+    <description>Java class file encryption tool</description>
     <url>https://github.com/ygqygq2/classfinal</url>
 
     <properties>
