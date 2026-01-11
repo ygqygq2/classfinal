@@ -11,7 +11,7 @@
 
     <groupId>io.github.ygqygq2</groupId>
     <artifactId>classfinal</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1-SNAPSHOT</version>
     <modules>
         <module>classfinal-core</module><!--主要代码在这里-->
         <module>classfinal-fatjar</module><!--单独运行的jar、javaagent-->
