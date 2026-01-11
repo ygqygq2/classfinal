@@ -125,9 +125,7 @@ jobs:
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: |
-            classfinal-fatjar/target/classfinal-fatjar-*.jar
-            classfinal-maven-plugin/target/classfinal-maven-plugin-*.jar
+          artifacts: "classfinal-fatjar/target/classfinal-fatjar-*.jar"
           bodyFile: 'body.md'
           generateReleaseNotes: true
           makeLatest: true
