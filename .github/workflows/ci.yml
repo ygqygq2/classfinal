@@ -116,3 +116,18 @@ jobs:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Extract release notes from CHANGELOG
+        run: |
+          # 使用sed命令提取最新的版本记录
+          cat CHANGELOG.md | awk '/^# \[/ {if (flag) exit; flag=1} flag {print}' > body.md
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: |
+            classfinal-fatjar/target/classfinal-fatjar-*.jar
+            classfinal-maven-plugin/target/classfinal-maven-plugin-*.jar
+          bodyFile: 'body.md'
+          generateReleaseNotes: true
+          makeLatest: true
