@@ -6,7 +6,7 @@ services:
       args:
         # 本地开发使用国内镜像源
         USE_CHINA_MIRROR: ${USE_CHINA_MIRROR:-true}
-    image: ghcr.io/ygqygq2/classfinal/classfinal-web:2.0.0
+    image: ghcr.io/ygqygq2/classfinal/classfinal-web:2.0.1-SNAPSHOT
     container_name: classfinal-web
     ports:
       - "59999:59999"
