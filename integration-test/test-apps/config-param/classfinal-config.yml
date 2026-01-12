@@ -1,0 +1,13 @@
+input:
+  file: "/data/app-config-param.jar"
+  packages:
+    - "io.github.ygqygy2.test"
+
+encryption:
+  password: "config-param-pwd-2024"
+
+output:
+  file: "/data/app-config-param-encrypted.jar"
+
+advanced:
+  skipConfirmation: true

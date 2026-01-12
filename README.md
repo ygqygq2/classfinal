@@ -26,8 +26,7 @@ ClassFinal 是一款 Java class 文件加密工具，支持直接加密 jar 包�
 - 📖 [架构设计文档](docs/01-architecture-design.md) - 详细的架构设计和技术原理
 - �� [Docker 使用指南](docs/02-docker-usage.md) - Docker 容器化部署和使用
 - 🛠️ [开发指南](docs/03-development-guide.md) - 开发环境配置和贡献指南
-- 🧪 [集成测试文档](docs/04-integration-testing.md) - 集成测试环境和测试流程
-- 📝 [更新日志](CHANGELOG.md) - 版本更新记录
+- 🧪 [集成测试文档](docs/04-integration-testing.md) - 集成测试环境和测试流程- ✨ [新功能指南 (2.0.1)](docs/11-new-features-2.0.1.md) - 配置文件、密码管理、加密验证- 📝 [更新日志](CHANGELOG.md) - 版本更新记录
 
 ## 快速开始
 
@@ -136,6 +135,40 @@ docker run --rm \
 运行 `mvn package` 后自动生成加密后的 jar。
 
 ## 高级功能
+
+### 配置文件 (2.0.1+)
+
+使用配置文件管理加密参数，避免命令行暴露敏感信息:
+
+```bash
+# 生成配置模板
+java -jar classfinal-2.0.1.jar --init-config classfinal.yml
+
+# 编辑配置文件
+# 使用配置文件加密
+export CLASSFINAL_PASSWORD="your-password"
+java -jar classfinal-2.0.1.jar --config classfinal.yml
+```
+
+### 密码管理 (2.0.1+)
+
+从文件读取密码（读取后自动删除）:
+
+```bash
+echo "your-password" > /tmp/password.txt
+chmod 600 /tmp/password.txt
+java -jar classfinal-2.0.1.jar \
+  -file app.jar \
+  --password-file /tmp/password.txt
+```
+
+### 加密验证 (2.0.1+)
+
+验证 JAR 是否已加密:
+
+```bash
+java -jar classfinal-2.0.1.jar --verify app-encrypted.jar
+```
 
 ### 无密码模式
 

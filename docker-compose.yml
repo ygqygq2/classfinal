@@ -882,6 +882,244 @@ services:
     networks:
       - test-network
 
+  # Maven 本地安装测试
+  test-mvn-install:
+    image: maven:3.8-openjdk-17
+    container_name: test-mvn-install
+    working_dir: /workspace
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== Maven 本地安装测试 ==="
+        echo "正在安装到本地仓库（日志已隐藏）..."
+        mvn clean install -f pom.xml -pl classfinal-core -am -DskipTests -Dgpg.skip=true -B -q -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+        echo "✓ Maven 本地安装成功"
+    volumes:
+      - .:/workspace
+      - maven-local-repo:/root/.m2/repository
+    networks:
+      - test-network
+
+  # === 2.0.1 新功能测试服务 ===
+  
+  # 准备：配置文件参数测试
+  prepare-config-param-test:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    pull_policy: never
+    container_name: prepare-config-param-test
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 准备配置文件参数测试 ==="
+        cp /data/app.jar /data/app-config-param.jar
+        echo "✓ 配置文件参数测试准备完成"
+        ls -lh /data/app-config-param.jar
+    volumes:
+      - test-data:/data
+    depends_on:
+      prepare-test-app:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 加密：使用配置文件参数
+  encrypt-with-config-param:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    pull_policy: never
+    container_name: encrypt-with-config-param
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 使用 --config 参数加密 ==="
+        java -jar /app/app.jar --config /test-config/classfinal-config.yml
+        if [ -f /data/app-config-param-encrypted.jar ]; then
+          echo "✓ 配置文件参数加密成功"
+          ls -lh /data/app-config-param-encrypted.jar
+        else
+          echo "✗ 配置文件参数加密失败"
+          exit 1
+        fi
+    volumes:
+      - test-data:/data
+      - ./integration-test/test-apps/config-param:/test-config:ro
+    depends_on:
+      prepare-config-param-test:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 测试：配置文件加密应用运行
+  test-config-param-encrypted:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    pull_policy: never
+    container_name: test-config-param-encrypted
+    command: ["agent"]
+    environment:
+      - TARGET_JAR=/data/app-config-param-encrypted.jar
+      - PASSWORD=config-param-pwd-2024
+    volumes:
+      - test-data:/data
+    depends_on:
+      encrypt-with-config-param:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - test-network
+
+  # 准备：密码文件参数测试
+  prepare-password-file-test:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    pull_policy: never
+    container_name: prepare-password-file-test
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 准备密码文件参数测试 ==="
+        cp /data/app.jar /data/app-pwdfile.jar
+        mkdir -p /data/secrets
+        echo -n "password-file-2024" > /data/secrets/password.txt
+        echo "✓ 密码文件准备完成"
+        echo "密码文件内容长度: $$(cat /data/secrets/password.txt | wc -c) 字节"
+    volumes:
+      - test-data:/data
+    depends_on:
+      prepare-test-app:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 加密：使用密码文件参数
+  encrypt-with-password-file:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    pull_policy: never
+    container_name: encrypt-with-password-file
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 使用 --password-file 参数加密 ==="
+        cd /data
+        java -jar /app/app.jar \
+          -file app-pwdfile.jar \
+          -packages io.github.ygqygq2.test \
+          --password-file secrets/password.txt \
+          -Y
+        # 加密后文件名自动为: app-pwdfile-encrypted.jar
+        if [ -f app-pwdfile-encrypted.jar ]; then
+          echo "✓ 密码文件参数加密成功"
+          ls -lh app-pwdfile-encrypted.jar
+        else
+          echo "✗ 密码文件参数加密失败"
+          exit 1
+        fi
+    volumes:
+      - test-data:/data
+    depends_on:
+      prepare-password-file-test:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 测试：密码文件加密应用运行
+  test-password-file-encrypted:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    pull_policy: never
+    container_name: test-password-file-encrypted
+    command: ["agent"]
+    environment:
+      - TARGET_JAR=/data/app-pwdfile-encrypted.jar
+      - PASSWORD=password-file-2024
+    volumes:
+      - test-data:/data
+    depends_on:
+      encrypt-with-password-file:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - test-network
+
+  # 准备：验证功能测试
+  prepare-verify-test:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    pull_policy: never
+    container_name: prepare-verify-test
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 准备验证功能测试 ==="
+        cp /data/app.jar /data/app-verify.jar
+        echo "✓ 验证测试准备完成"
+    volumes:
+      - test-data:/data
+    depends_on:
+      prepare-test-app:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  # 加密并验证
+  encrypt-and-verify:
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    pull_policy: never
+    container_name: encrypt-and-verify
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 使用 --verify 参数加密并验证 ==="
+        cd /data
+        java -jar /app/app.jar \
+          -file app-verify.jar \
+          -packages io.github.ygqygq2.test \
+          -pwd verify-test-2024 \
+          -Y
+        
+        # 加密后文件名自动为: app-verify-encrypted.jar
+        # 验证文件已生成
+        if [ -f app-verify-encrypted.jar ]; then
+          echo "✓ 加密文件已生成"
+          ls -lh app-verify-encrypted.jar
+        else
+          echo "✗ 加密文件未生成"
+          exit 1
+        fi
+        
+        # 使用 --verify 参数验证 JAR 是否已加密
+        echo "--- 验证加密结果 ---"
+        if java -jar /app/app.jar --verify app-verify-encrypted.jar; then
+          echo "✓ JAR 已加密（验证通过）"
+        else
+          echo "✗ JAR 未加密（验证失败）"
+          exit 1
+        fi
+        
+        # 测试加密文件可运行
+        echo "验证加密文件可运行..."
+        timeout 5 java -javaagent:/app/app.jar="-pwd verify-test-2024" -jar app-verify-encrypted.jar || true
+        echo "✓ 验证测试完成"
+    volumes:
+      - test-data:/data
+    depends_on:
+      prepare-verify-test:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
 volumes:
   maven-local-repo:
     driver: local

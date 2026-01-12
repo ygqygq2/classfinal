@@ -2,7 +2,7 @@
 # ClassFinal 发布脚本
 set -euo pipefail
 
-CURRENT_VERSION="2.0.0-SNAPSHOT"
+CURRENT_VERSION="2.0.1-SNAPSHOT"
 RELEASE_VERSION="${1:-}"
 NEXT_VERSION="${2:-}"
 

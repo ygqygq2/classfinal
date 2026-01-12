@@ -1,0 +1,77 @@
+# ClassFinal 配置文件模板
+# 使用此文件可以避免在命令行暴露敏感信息
+# 支持 YAML 和 JSON 格式
+
+# 输入配置
+input:
+  # 要加密的 jar/war 文件路径（必填）
+  file: app.jar
+  
+  # 要加密的包列表（必填，至少一个）
+  packages:
+    - com.example
+    - org.myapp
+  
+  # 排除的类名列表（可选）
+  exclude:
+    - com.example.test
+    - org.myapp.TestClass
+  
+  # lib 目录下要加密的 jar 列表（可选）
+  libjars:
+    - dependency-a.jar
+    - dependency-b.jar
+
+# 加密配置
+encryption:
+  # 加密密码（支持环境变量 ${VAR_NAME}）
+  # 推荐使用环境变量避免密码泄露
+  password: ${CLASSFINAL_PASSWORD}
+  
+  # 或者从文件读取密码（二选一）
+  # passwordFile: /secure/password.txt
+  
+  # 密码文件读取后是否自动删除（可选）
+  # deletePasswordFile: true
+  
+  # 加密模式（可选，默认: password）
+  # 可选值: password | nopassword | machine-binding
+  mode: password
+  
+  # 机器码（仅当 mode=machine-binding 时需要）
+  # machineCode: "YOUR-MACHINE-CODE"
+
+# 输出配置
+output:
+  # 输出文件路径（可选，默认: ${input.file}-encrypted.jar）
+  file: app-encrypted.jar
+  
+  # 是否覆盖已存在的文件（可选，默认: false）
+  overwrite: false
+
+# 高级配置（可选）
+advanced:
+  # 日志级别: DEBUG | INFO | WARN | ERROR
+  logLevel: INFO
+  
+  # 是否跳过确认提示
+  skipConfirmation: false
+  
+  # 并行加密线程数（可选，默认: 1）
+  threads: 1
+  
+  # 是否启用增量加密（可选，默认: false）
+  incremental: false
+  
+  # 增量加密缓存文件（仅当 incremental=true 时需要）
+  # cacheFile: .classfinal-cache
+
+# 使用示例:
+# 1. 设置环境变量
+#    export CLASSFINAL_PASSWORD=yourpassword
+#
+# 2. 运行加密（使用配置文件）
+#    java -jar classfinal-2.0.1.jar --config classfinal.yml
+#
+# 3. 或者使用 JSON 格式
+#    java -jar classfinal-2.0.1.jar --config classfinal.json
