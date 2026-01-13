@@ -36,7 +36,7 @@ services:
       args:
         # 本地开发默认使用国内镜像源,CI 环境设置 USE_CHINA_MIRROR=false
         USE_CHINA_MIRROR: ${USE_CHINA_MIRROR:-true}
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     container_name: classfinal
     environment:
       - SONATYPE_USERNAME=${SONATYPE_USERNAME:-}
@@ -93,7 +93,7 @@ services:
       - test-network
   # 加密测试应用
   encrypt-app:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: encrypt-app
     command: ["encrypt"]
@@ -137,7 +137,7 @@ services:
 
   # 测试：使用 JavaAgent 和密码运行加密应用（应该成功）
   test-encrypted-with-password:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: test-encrypted-with-password
     command: ["agent"]
@@ -184,7 +184,7 @@ services:
 
   # 测试：使用错误密码运行加密应用（应该失败）
   test-encrypted-wrong-password:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: test-encrypted-wrong-password
     volumes:
@@ -226,7 +226,7 @@ services:
 
   # 测试：多包加密
   encrypt-multipackage:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: encrypt-multipackage
     command: ["encrypt"]
@@ -245,7 +245,7 @@ services:
 
   # 测试：多包加密应用运行
   test-multipackage-encrypted:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: test-multipackage-encrypted
     command: ["agent"]
@@ -278,7 +278,7 @@ services:
       - test-network
 
   encrypt-with-exclude:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: encrypt-with-exclude
     command:
@@ -301,7 +301,7 @@ services:
       - test-network
 
   test-encrypted-with-exclude:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: test-encrypted-with-exclude
     command: ["agent"]
@@ -334,7 +334,7 @@ services:
       - test-network
 
   encrypt-nopwd:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: encrypt-nopwd
     command:
@@ -356,7 +356,7 @@ services:
       - test-network
 
   test-encrypted-nopwd:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: test-encrypted-nopwd
     command:
@@ -521,7 +521,7 @@ services:
 
   # 加密：使用 -libjars 参数加密 lib 依赖
   encrypt-with-libjars:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     container_name: encrypt-with-libjars
     command:
       - /bin/sh
@@ -590,7 +590,7 @@ services:
 
   # 加密：加密配置文件
   encrypt-config-files:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     container_name: encrypt-config-files
     command:
       - /bin/sh
@@ -640,7 +640,7 @@ services:
 
   # 准备：机器码绑定测试
   prepare-machine-code:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     container_name: prepare-machine-code
     command:
       - /bin/sh
@@ -666,7 +666,7 @@ services:
 
   # 加密：使用机器码绑定
   encrypt-with-machine-code:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     container_name: encrypt-with-machine-code
     command:
       - /bin/sh
@@ -738,7 +738,7 @@ services:
 
   # 加密：WAR 包加密
   encrypt-war:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     container_name: encrypt-war
     command:
       - /bin/sh
@@ -924,7 +924,7 @@ services:
   
   # 准备：配置文件参数测试
   prepare-config-param-test:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: prepare-config-param-test
     command:
@@ -945,7 +945,7 @@ services:
 
   # 加密：使用配置文件参数
   encrypt-with-config-param:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: encrypt-with-config-param
     command:
@@ -972,7 +972,7 @@ services:
 
   # 测试：配置文件加密应用运行
   test-config-param-encrypted:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: test-config-param-encrypted
     command: ["agent"]
@@ -995,7 +995,7 @@ services:
 
   # 准备：密码文件参数测试
   prepare-password-file-test:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: prepare-password-file-test
     command:
@@ -1018,7 +1018,7 @@ services:
 
   # 加密：使用密码文件参数
   encrypt-with-password-file:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: encrypt-with-password-file
     command:
@@ -1050,7 +1050,7 @@ services:
 
   # 测试：密码文件加密应用运行
   test-password-file-encrypted:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: test-password-file-encrypted
     command: ["agent"]
@@ -1073,7 +1073,7 @@ services:
 
   # 准备：验证功能测试
   prepare-verify-test:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: prepare-verify-test
     command:
@@ -1093,7 +1093,7 @@ services:
 
   # 加密并验证
   encrypt-and-verify:
-    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+    image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
     pull_policy: never
     container_name: encrypt-and-verify
     command:
