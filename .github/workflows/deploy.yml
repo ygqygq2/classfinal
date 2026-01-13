@@ -10,6 +10,8 @@ jobs:
   deploy:
     name: Deploy to Maven Central
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 允许创建 Release
 
     steps:
       - name: Checkout code
@@ -61,10 +63,19 @@ jobs:
       - name: Deploy SNAPSHOT to Maven Central
         if: github.ref == 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
         run: |
-          echo "⚠️  跳过 SNAPSHOT 部署"
-          echo "SNAPSHOT 版本需要用户配置 OSSRH 仓库才能使用，不适合公开发布"
-          echo "仅在打 tag 时发布正式版本到 Maven Central"
-          exit 0
+          # 确保版本号包含 -SNAPSHOT
+          if grep -q '<version>.*-SNAPSHOT</version>' pom.xml; then
+            echo "✓ SNAPSHOT 版本，部署到 OSSRH Snapshot Repository..."
+            mvn clean deploy -DskipTests -B -P release
+          else
+            echo "⚠ 警告: main 分支应该使用 SNAPSHOT 版本"
+            echo "跳过部署"
+            exit 0
+          fi
+        env:
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Deploy Release to Maven Central
         if: startsWith(github.ref, 'refs/tags/v')
