@@ -2,7 +2,8 @@
 # ClassFinal 发布脚本
 set -euo pipefail
 
-CURRENT_VERSION="2.0.1-SNAPSHOT"
+# 从 pom.xml 读取当前版本
+CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 RELEASE_VERSION="${1:-}"
 NEXT_VERSION="${2:-}"
 
