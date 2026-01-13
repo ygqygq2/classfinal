@@ -43,7 +43,10 @@ function Update_Version() {
     
     # 更新 integration-test 中引用的 classfinal-maven-plugin 版本
     find integration-test -name "pom.xml" -type f | while read -r pom; do
-        sed -i "s|<groupId>io.github.ygqygq2</groupId>\([[:space:]]*\)<artifactId>classfinal-maven-plugin</artifactId>\([[:space:]]*\)<version>${old_version}</version>|<groupId>io.github.ygqygq2</groupId>\1<artifactId>classfinal-maven-plugin</artifactId>\2<version>${new_version}</version>|g" "$pom"
+        if grep -q "classfinal-maven-plugin" "$pom"; then
+            sed -i "/<artifactId>classfinal-maven-plugin<\/artifactId>/,/<\/plugin>/ s|<version>${old_version}</version>|<version>${new_version}</version>|" "$pom"
+            echo "  ✓ 更新 $pom"
+        fi
     done
     
     echo "✓ 版本更新完成"
