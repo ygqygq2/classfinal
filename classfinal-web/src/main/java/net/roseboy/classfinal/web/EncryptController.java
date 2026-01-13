@@ -134,6 +134,9 @@ public class EncryptController {
                 encryptor.setIncludeJars(Arrays.asList("*"));
             }
             
+            // 设置 classpath（必需，用于依赖扫描）
+            encryptor.setClassPath(new ArrayList<>());
+            
             // 执行加密
             String encryptedPath = encryptor.doEncryptJar();
             

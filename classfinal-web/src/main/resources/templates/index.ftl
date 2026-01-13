@@ -202,8 +202,8 @@
                 
                 <div class="form-group">
                     <label for="packages">要加密的包名 <span style="color: red;">*</span></label>
-                    <input type="text" id="packages" placeholder="例如: com.example 或 com.example,org.myapp">
-                    <div class="help-text">多个包名用逗号分隔</div>
+                    <input type="text" id="packages" placeholder="例如: com.example 或 com.example,org.myapp 或 * (加密所有)">
+                    <div class="help-text">多个包名用逗号分隔，支持通配符: * (匹配任意) 或 ? (匹配单个字符)</div>
                 </div>
 
                 <div class="checkbox-group">
