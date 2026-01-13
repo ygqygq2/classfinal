@@ -35,19 +35,24 @@ public class CoreAgent {
         pwd = JarDecryptor.readPassFromJar(new File(JarUtils.getRootPath(null)));
 
         if (args != null) {
-            options.parse(args.split(" "));
+            // 兼容两种参数格式：
+            // 1. '-pwd value' (需要引号包裹整个参数字符串)
+            // 2. '-pwd=value' (不需要引号，使用等号连接)
+            String processedArgs = args.replace("=", " ");
+            options.parse(processedArgs.split(" "));
             Const.DEBUG = options.hasOption("debug");
         }
 
         //参数标识 无密码启动
         if (options.hasOption("nopwd")) {
-            pwd = new char[1];
-            pwd[0] = '#';
+            // 使用内部标识
+            pwd = Const.NO_PASSWORD_MARKER.toCharArray();
         }
 
         //参数获取密码
         if (StrUtils.isEmpty(pwd)) {
-            pwd = options.getOptionValue("pwd", "").toCharArray();
+            String pwdStr = options.getOptionValue("pwd", "").trim();
+            pwd = pwdStr.toCharArray();
         }
 
         //参数没密码，读取环境变量中的密码
@@ -61,27 +66,22 @@ public class CoreAgent {
 
         //参数、环境变量都没密码，读取密码配置文件
         if (StrUtils.isEmpty(pwd)) {
-            Log.debug("无法从GUI中获取密码，读取密码文件");
             pwd = readPasswordFromFile(options);
         }
 
         // 配置文件没密码，从控制台获取输入
         if (StrUtils.isEmpty(pwd)) {
-            Log.debug("无法在参数中获取密码，从控制台获取");
             Console console = System.console();
             if (console != null) {
-                Log.debug("控制台输入");
                 pwd = console.readPassword("Password:");
             }
         }
 
         //不支持控制台输入，弹出gui输入
         if (StrUtils.isEmpty(pwd)) {
-            Log.debug("无法从控制台中获取密码，GUI输入");
             InputForm input = new InputForm();
             boolean gui = input.showForm();
             if (gui) {
-                Log.debug("GUI输入");
                 pwd = input.nextPasswordLine();
                 input.closeForm();
             }

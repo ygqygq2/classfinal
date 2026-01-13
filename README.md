@@ -26,7 +26,8 @@ ClassFinal 是一款 Java class 文件加密工具，支持直接加密 jar 包�
 - 📖 [架构设计文档](docs/01-architecture-design.md) - 详细的架构设计和技术原理
 - �� [Docker 使用指南](docs/02-docker-usage.md) - Docker 容器化部署和使用
 - 🛠️ [开发指南](docs/03-development-guide.md) - 开发环境配置和贡献指南
-- 🧪 [集成测试文档](docs/04-integration-testing.md) - 集成测试环境和测试流程- ✨ [新功能指南 (2.0.1)](docs/11-new-features-2.0.1.md) - 配置文件、密码管理、加密验证- 📝 [更新日志](CHANGELOG.md) - 版本更新记录
+- 🧪 [集成测试文档](docs/04-integration-testing.md) - 集成测试环境和测试流程
+- 📝 [更新日志](CHANGELOG.md) - 版本更新记录
 
 ## 快速开始
 
@@ -62,7 +63,8 @@ java -jar classfinal-2.0.0.jar \
 **参数说明**:
 - `-file`: 要加密的 jar/war 路径
 - `-packages`: 要加密的包名（多个用逗号分隔）
-- `-pwd`: 加密密码（使用 `#` 表示无密码模式）
+- `-pwd`: 加密密码
+- `-nopwd`: 无密码模式（与 `-pwd` 互斥）
 - `-libjars`: lib 目录下要加密的 jar（可选）
 - `-exclude`: 排除的类名（可选）
 - `-code`: 机器码绑定（可选）
@@ -73,13 +75,23 @@ java -jar classfinal-2.0.0.jar \
 ### 运行加密后的应用
 
 ```bash
+# 方式1：使用引号包裹参数（推荐，支持所有 shell）
 java -javaagent:yourproject-encrypted.jar='-pwd yourpassword' \
+  -jar yourproject-encrypted.jar
+
+# 方式2：使用等号连接（无需引号）
+java -javaagent:yourproject-encrypted.jar=-pwd=yourpassword \
   -jar yourproject-encrypted.jar
 ```
 
 或使用环境变量:
 ```bash
+# 方式1：使用引号包裹
 java -javaagent:yourproject-encrypted.jar='-pwdname MY_PASSWORD' \
+  -jar yourproject-encrypted.jar
+
+# 方式2：使用等号
+java -javaagent:yourproject-encrypted.jar=-pwdname=MY_PASSWORD \
   -jar yourproject-encrypted.jar
 ```
 
@@ -172,10 +184,10 @@ java -jar classfinal-2.0.1.jar --verify app-encrypted.jar
 
 ### 无密码模式
 
-适用于不希望暴露密码的场景，加密时使用 `-pwd #`:
+适用于不希望暴露密码的场景，加密时使用 `-nopwd` 标志：
 
 ```bash
-java -jar classfinal-2.0.0.jar -file app.jar -packages com.example -pwd # -Y
+java -jar classfinal-2.0.0.jar -file app.jar -packages com.example -nopwd -Y
 ```
 
 运行时添加 `-nopwd` 参数:
@@ -208,13 +220,22 @@ java -jar classfinal-2.0.0.jar \
 
 **Linux (catalina.sh)**:
 ```bash
+# 方式1：使用引号包裹参数（推荐）
 CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-2.0.0.jar='-pwd yourpassword'"
+export CATALINA_OPTS
+
+# 方式2：使用等号连接
+CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-2.0.0.jar=-pwd=yourpassword"
 export CATALINA_OPTS
 ```
 
 **Windows (catalina.bat)**:
 ```bat
+REM 方式1：使用引号包裹参数（推荐）
 set JAVA_OPTS="-javaagent:C:\path\to\classfinal-2.0.0.jar='-pwd yourpassword'"
+
+REM 方式2：使用等号连接
+set JAVA_OPTS="-javaagent:C:\path\to\classfinal-2.0.0.jar=-pwd=yourpassword"
 ```
 
 ## 安全建议

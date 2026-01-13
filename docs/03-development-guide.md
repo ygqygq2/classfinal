@@ -152,7 +152,12 @@ java -jar ../../classfinal-fatjar/target/classfinal-*.jar \
   -Y
 
 # 3. 运行加密后的 JAR（使用 JavaAgent）
+# 方式1：使用引号包裹参数（推荐）
 java -javaagent:target/classfinal-test-app-*-encrypted.jar='-pwd test123' \
+  -jar target/classfinal-test-app-*-encrypted.jar
+
+# 方式2：使用等号连接
+java -javaagent:target/classfinal-test-app-*-encrypted.jar=-pwd=test123 \
   -jar target/classfinal-test-app-*-encrypted.jar
 ```
 

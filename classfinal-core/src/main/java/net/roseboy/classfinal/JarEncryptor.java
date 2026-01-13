@@ -83,10 +83,13 @@ public class JarEncryptor {
         if (!new File(jarPath).exists()) {
             throw new RuntimeException("文件不存在:" + jarPath);
         }
-        if (password == null || password.length == 0) {
-            throw new RuntimeException("密码不能为空");
-        }
-        if (password.length == 1 && password[0] == '#') {
+        // 允许空密码（无密码模式）
+        if (password != null && password.length > 0) {
+            String pwd = new String(password);
+            if (Const.NO_PASSWORD_MARKER.equals(pwd)) {
+                Log.debug("加密模式：无密码");
+            }
+        } else {
             Log.debug("加密模式：无密码");
         }
         Log.debug("机器绑定：" + (StrUtils.isEmpty(this.code) ? "否" : "是"));
@@ -210,6 +213,7 @@ public class JarEncryptor {
         }
 
         //加密另存
+        ProgressBar progress = new ProgressBar("加密类文件", classFiles.size());
         classFiles.forEach(classFile -> {
             String className = classFile.getName();
             if (className.endsWith(".class")) {
@@ -226,6 +230,10 @@ public class JarEncryptor {
             File targetFile = new File(metaDir, className);
             IoUtils.writeFile(targetFile, bytes);
             encryptClasses.add(className);
+            
+            progress.increment();
+            progress.display();
+            
             Log.debug("加密：" + className);
         });
 

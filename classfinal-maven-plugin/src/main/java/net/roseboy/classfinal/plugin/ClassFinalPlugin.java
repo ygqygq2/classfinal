@@ -60,6 +60,9 @@ public class ClassFinalPlugin extends AbstractMojo {
      */
     public void execute() throws MojoExecutionException, MojoFailureException {
         Const.DEBUG = debug;
+        // Maven 插件环境禁用进度条，使用 WARN 级别避免输出进度信息
+        net.roseboy.classfinal.util.Log.setLogLevel(net.roseboy.classfinal.util.Log.LogLevel.WARN);
+        
         Log logger = getLog();
         Build build = project.getBuild();
 

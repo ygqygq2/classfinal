@@ -6,6 +6,10 @@ package net.roseboy.classfinal;
  * @author roseboy
  */
 public class Const {
+    
+    /** 无密码模式内部标识（用于内部判断，用户不可见） */
+    public static final String NO_PASSWORD_MARKER = "__NO_PASSWORD__";
+    
     public static final String VERSION = getVersion();
 
     //加密出来的文件名

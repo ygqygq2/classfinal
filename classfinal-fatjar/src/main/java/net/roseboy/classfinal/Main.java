@@ -40,6 +40,7 @@ public class Main {
         cmd.addOption("pwd", true, "加密密码");
         cmd.addOption("password", true, "加密密码(同 -pwd)");
         cmd.addOption("password-file", true, "从文件读取密码");
+        cmd.addOption("nopwd", false, "无密码模式");
         cmd.addOption("code", true, "机器码");
         cmd.addOption("exclude", true, "排除的类名(可为空,多个用\",\"分割)");
         cmd.addOption("file", true, "加密的jar/war路径");
@@ -49,11 +50,19 @@ public class Main {
         cmd.addOption("config", true, "配置文件路径(YAML/JSON)");
         cmd.addOption("init-config", true, "生成配置文件模板");
         cmd.addOption("verify", true, "验证JAR是否已加密");
+        cmd.addOption("log-level", true, "日志级别(DEBUG|INFO|WARN|ERROR)");
         cmd.addOption("Y", false, "无需确认");
         cmd.addOption("y", false, "无需确认(同 -Y)");
         cmd.addOption("debug", false, "调试模式");
         cmd.addOption("C", false, "生成机器码");
         cmd.parse(args);
+
+        // 设置日志级别
+        if (cmd.hasOption("log-level")) {
+            String logLevel = cmd.getOptionValue("log-level");
+            Log.setLogLevel(logLevel);
+            Log.debug("日志级别已设置为: " + logLevel);
+        }
 
         if (cmd.hasOption("C")) {
             makeCode();
@@ -129,6 +138,10 @@ public class Main {
                 // 从配置文件读取 skipConfirmation 设置
                 if (config.getAdvanced() != null) {
                     skipConfirmation = config.getAdvanced().isSkipConfirmation();
+                    // 设置日志级别
+                    if (config.getAdvanced().getLogLevel() != null) {
+                        Log.setLogLevel(config.getAdvanced().getLogLevel());
+                    }
                 }
 
                 Log.println("已从配置文件加载参数: " + configPath);
@@ -201,8 +214,12 @@ public class Main {
             excludeClass = cmd.getOptionValue("exclude", "");
             classpath = cmd.getOptionValue("classpath", "");
             
-            // 密码处理(优先从文件读取)
-            if (cmd.hasOption("password-file")) {
+            // 密码处理
+            if (cmd.hasOption("nopwd")) {
+                // 无密码模式
+                password = Const.NO_PASSWORD_MARKER;
+            } else if (cmd.hasOption("password-file")) {
+                // 从文件读取
                 try {
                     password = PasswordUtil.readPasswordFromFile(
                         cmd.getOptionValue("password-file"),
@@ -213,6 +230,7 @@ public class Main {
                     return;
                 }
             } else {
+                // 从参数读取
                 password = cmd.getOptionValue("password", cmd.getOptionValue("pwd", ""));
             }
             
@@ -235,7 +253,7 @@ public class Main {
             path = "/Users/roseboy/code-space/pig_project/target/pig_project_maven.war";
             packages = "net.roseboy";//包名过滤
             excludeClass = "org.spring";//排除的类
-            password = "#";
+            password = Const.NO_PASSWORD_MARKER; // 无密码模式
             classpath = "/Users/roseboy/code-space/apache-tomcat-8.5.32/lib";
             Const.DEBUG = true;
         } else if ("3".equals(path)) {

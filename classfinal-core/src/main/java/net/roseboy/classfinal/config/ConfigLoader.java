@@ -138,6 +138,11 @@ public class ConfigLoader {
                         sectionStack.push(key);
                     } else {
                         // 有值的键值对
+                        // 移除行尾注释（# 开头）
+                        int commentIndex = value.indexOf('#');
+                        if (commentIndex > 0) {
+                            value = value.substring(0, commentIndex).trim();
+                        }
                         value = removeQuotes(value);
                         
                         // 替换环境变量

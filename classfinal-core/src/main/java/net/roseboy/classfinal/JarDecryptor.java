@@ -67,7 +67,8 @@ public class JarDecryptor {
         }
 
         //无密码启动,读取隐藏的密码
-        if (password.length == 1 && password[0] == '#') {
+        if (password == null || password.length == 0 || 
+            Const.NO_PASSWORD_MARKER.equals(new String(password))) {
             password = readPassFromJar(workDir);
         }
 

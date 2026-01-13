@@ -138,6 +138,7 @@ entrypoint.sh 支持多种模式：
 3. **agent 模式**: 通过 JavaAgent 运行加密应用
    - 环境变量: `TARGET_JAR`, `PASSWORD`
    - 命令: `java -javaagent:/app/app.jar='-pwdname PASSWORD' -jar $TARGET_JAR`
+   - 或: `java -javaagent:/app/app.jar=-pwdname=PASSWORD -jar $TARGET_JAR`
 4. **自定义模式**: 执行任意命令
    - 用于调试和特殊场景
 

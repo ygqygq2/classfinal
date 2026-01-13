@@ -344,7 +344,7 @@ services:
         echo "=== 无密码模式加密 ==="
         java -jar /app/app.jar -file /data/app-nopwd.jar \
           -packages io.github.ygqygq2.test \
-          -pwd '#' \
+          -nopwd \
           -Y
         echo "✓ 无密码加密完成"
     volumes:
@@ -364,7 +364,7 @@ services:
       - -c
       - |
         echo "=== 测试无密码模式运行 ==="
-        java -javaagent:/app/app.jar='-nopwd' -jar /data/app-nopwd-encrypted.jar
+        java -javaagent:/app/app.jar=-nopwd -jar /data/app-nopwd-encrypted.jar
     volumes:
       - test-data:/data
     depends_on:
@@ -414,6 +414,8 @@ services:
         mvn clean install -f pom.xml -pl classfinal-core,classfinal-maven-plugin -am -DskipTests -Dgpg.skip=true -B -q -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
         echo "✓ Maven 插件已安装到本地仓库"
         ls -la /root/.m2/repository/io/github/ygqygq2/ || echo "安装可能失败"
+        # 修复权限（Docker容器创建的文件为root所有）
+        chmod -R 777 /workspace/classfinal-*/target /workspace/.m2 2>/dev/null || true
     volumes:
       - .:/workspace
       - maven-local-repo:/root/.m2/repository
@@ -427,6 +429,7 @@ services:
     working_dir: /workspace/integration-test/test-apps/maven-plugin
     environment:
       - USE_CHINA_MIRROR=${USE_CHINA_MIRROR:-true}
+      - CLASSFINAL_PASSWORD=maven123
     entrypoint: []
     command:
       - /bin/sh
@@ -447,8 +450,24 @@ services:
         if [ -f target/classfinal-test-maven-plugin-*-encrypted.jar ]; then
           echo "✓ Maven 插件加密成功"
           cp target/classfinal-test-maven-plugin-*-encrypted.jar /data/app-maven-encrypted.jar
+          # 修复权限（Docker容器创建的文件为root所有）
+          chmod -R 777 /workspace/integration-test/test-apps/maven-plugin/target || true
           # 运行测试，限制15秒超时（测试通过后会启动HTTP服务器）
-          timeout 15 java -javaagent:/data/app-maven-encrypted.jar="-pwd maven123" -jar /data/app-maven-encrypted.jar > /tmp/maven-plugin-test.log 2>&1 || true
+          echo "=== 运行加密后的应用测试 ==="
+          echo "使用环境变量 CLASSFINAL_PASSWORD 传递密码"
+          echo "命令: java -javaagent:/data/app-maven-encrypted.jar='-pwdname CLASSFINAL_PASSWORD' -jar /data/app-maven-encrypted.jar"
+          echo ""
+          
+          # 使用环境变量传递密码（最佳实践）
+          # 支持两种格式：'-pwdname CLASSFINAL_PASSWORD' 或 -pwdname=CLASSFINAL_PASSWORD
+          set +e
+          timeout 15 java -javaagent:/data/app-maven-encrypted.jar='-pwdname CLASSFINAL_PASSWORD' -jar /data/app-maven-encrypted.jar 2>&1 | tee /tmp/maven-plugin-test.log
+          TEST_EXIT_CODE=$$?
+          set -e
+          
+          echo ""
+          echo "=== 测试进程退出码: $$TEST_EXIT_CODE ==="
+          echo ""
           # 检查是否所有测试通过
           if grep -q "All Tests Passed" /tmp/maven-plugin-test.log; then
             echo "✓ Maven 插件集成测试通过"
@@ -535,7 +554,7 @@ services:
       - -c
       - |
         echo "=== 测试 lib 依赖加密应用 ==="
-        java -javaagent:/data/app-libjars-encrypted.jar='-pwd libjars123' \
+        java -javaagent:/data/app-libjars-encrypted.jar=-pwd\ libjars123 \
           -cp /data/app-libjars-encrypted.jar:/data/lib/gson-2.10.1-encrypted.jar \
           io.github.ygqygq2.test.TestApp
     volumes:
@@ -609,7 +628,7 @@ services:
       - -c
       - |
         echo "=== 测试配置文件加密应用 ==="
-        java -javaagent:/data/app-config-encrypted.jar='-pwd config123' \
+        java -javaagent:/data/app-config-encrypted.jar=-pwd\ config123 \
           -jar /data/app-config-encrypted.jar
     volumes:
       - test-data:/data
@@ -683,7 +702,7 @@ services:
         echo "=== 测试机器码绑定(正确机器) ==="
         # 机器码已经在加密时绑定到 JAR 中，运行时会自动验证
         # 不需要也不能通过参数传递机器码
-        java -javaagent:/data/app-machine-encrypted.jar="-pwd machine123" \
+        java -javaagent:/data/app-machine-encrypted.jar=-pwd\ machine123 \
           -jar /data/app-machine-encrypted.jar
     volumes:
       - test-data:/data
@@ -1110,7 +1129,7 @@ services:
         
         # 测试加密文件可运行
         echo "验证加密文件可运行..."
-        timeout 5 java -javaagent:/app/app.jar="-pwd verify-test-2024" -jar app-verify-encrypted.jar || true
+        timeout 5 java -javaagent:/app/app.jar=-pwd\ verify-test-2024 -jar app-verify-encrypted.jar || true
         echo "✓ 验证测试完成"
     volumes:
       - test-data:/data

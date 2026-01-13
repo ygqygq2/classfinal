@@ -177,12 +177,15 @@ public class EncryptionVerifier {
             byte[] bytes = new byte[Math.min(1024, (int) entry.getSize())];
             int read = is.read(bytes);
             
-            if (read > 0) {
-                // 检查是否包含 ClassFinal 特征标记
-                // 正常 class 文件以 CAFEBABE 开头
-                // 加密后的文件会有不同的特征
-                String content = new String(bytes, 0, read);
-                return content.contains("classfinal") || !content.startsWith("ÊþºÞ");
+            if (read >= 4) {
+                // 检查是否是正常的 class 文件（以 CAFEBABE 开头）
+                boolean hasClassMagic = bytes[0] == (byte) 0xCA && 
+                                       bytes[1] == (byte) 0xFE &&
+                                       bytes[2] == (byte) 0xBA && 
+                                       bytes[3] == (byte) 0xBE;
+                
+                // 如果不是正常的 class 文件魔数，说明可能已加密
+                return !hasClassMagic;
             }
         }
         return false;

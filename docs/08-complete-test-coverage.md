@@ -37,13 +37,13 @@
 #### Step 6: 测试正确密码运行
 
 - **目的**: 验证正确密码可以运行
-- **参数**: `-javaagent:app-encrypted.jar='-pwd test123'`
+- **参数**: `-javaagent:app-encrypted.jar='-pwd test123'` 或 `-javaagent:app-encrypted.jar=-pwd=test123`
 - **验证**: 应用成功运行
 
 #### Step 7: 测试错误密码被拒绝
 
 - **目的**: 验证错误密码无法运行
-- **参数**: `-javaagent:app-encrypted.jar='-pwd wrong123'`
+- **参数**: `-javaagent:app-encrypted.jar='-pwd wrong123'` 或 `-javaagent:app-encrypted.jar=-pwd=wrong123`
 - **验证**: 应用运行失败
 
 ### 多包加密 (Steps 8-11)
@@ -69,7 +69,7 @@
 #### Step 13: 无密码模式
 
 - **目的**: 测试无密码加密模式
-- **参数**: `-pwd #`
+- **参数**: `-nopwd`
 - **验证**:
   - 使用 `-nopwd` 参数可运行
   - 无需指定密码
@@ -202,7 +202,7 @@
 | 基础加密     | `-file`, `-packages`, `-pwd` | 1-7      | ✅   |
 | 多包加密     | `-packages` (多个)           | 8-11     | ✅   |
 | 排除类名     | `-exclude`                   | 12       | ✅   |
-| 无密码模式   | `-pwd #`, `-nopwd`           | 13       | ✅   |
+| 无密码模式   | `-nopwd`                     | 13       | ✅   |
 | Maven 插件   | pom.xml 配置                 | 14       | ✅   |
 | lib 依赖加密 | `-libjars`                   | 15       | ✅   |
 | 配置文件加密 | (资源文件)                   | 16       | ✅   |
