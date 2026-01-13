@@ -1,6 +1,6 @@
 # ClassFinal
 
-[![Maven Central](https://img.shields.io/badge/Maven%20Central-2.0.0-blue.svg)](https://central.sonatype.com/artifact/io.github.ygqygq2/classfinal/2.0.0)
+[![Maven Central](https://img.shields.io/badge/Maven%20Central-2.0.1-blue.svg)](https://central.sonatype.com/artifact/io.github.ygqygq2/classfinal/2.0.1)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-1.8+-orange.svg)](https://www.oracle.com/java/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://github.com/ygqygq2/classfinal/pkgs/container/classfinal%2Fclassfinal)
@@ -38,7 +38,7 @@ ClassFinal 是一款 Java class 文件加密工具，支持直接加密 jar 包�
 <dependency>
     <groupId>io.github.ygqygq2</groupId>
     <artifactId>classfinal-core</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
 </dependency>
 ```
 
@@ -47,13 +47,13 @@ ClassFinal 是一款 Java class 文件加密工具，支持直接加密 jar 包�
 
 **Docker 镜像**:
 ```bash
-docker pull ghcr.io/ygqygq2/classfinal/classfinal:2.0.0
+docker pull ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
 ```
 
 ### 加密 JAR
 
 ```bash
-java -jar classfinal-2.0.0.jar \
+java -jar classfinal-2.0.1.jar \
   -file yourproject.jar \
   -packages com.yourpackage \
   -pwd yourpassword \
@@ -104,7 +104,7 @@ docker run --rm \
   -e INPUT_FILE=/data/app.jar \
   -e PACKAGES=com.example \
   -e PASSWORD=yourpassword \
-  ghcr.io/ygqygq2/classfinal/classfinal:2.0.0 encrypt
+  ghcr.io/ygqygq2/classfinal/classfinal:2.0.1 encrypt
 ```
 
 **运行**:
@@ -113,7 +113,7 @@ docker run --rm \
   -v $(pwd):/data \
   -e TARGET_JAR=/data/app-encrypted.jar \
   -e PASSWORD=yourpassword \
-  ghcr.io/ygqygq2/classfinal/classfinal:2.0.0 agent
+  ghcr.io/ygqygq2/classfinal/classfinal:2.0.1 agent
 ```
 
 详见 [Docker 使用指南](docs/02-docker-usage.md)
@@ -126,7 +126,7 @@ docker run --rm \
 <plugin>
     <groupId>io.github.ygqygq2</groupId>
     <artifactId>classfinal-maven-plugin</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
     <configuration>
         <password>yourpassword</password>
         <packages>com.example</packages>
@@ -187,7 +187,7 @@ java -jar classfinal-2.0.1.jar --verify app-encrypted.jar
 适用于不希望暴露密码的场景，加密时使用 `-nopwd` 标志：
 
 ```bash
-java -jar classfinal-2.0.0.jar -file app.jar -packages com.example -nopwd -Y
+java -jar classfinal-2.0.1.jar -file app.jar -packages com.example -nopwd -Y
 ```
 
 运行时添加 `-nopwd` 参数:
@@ -199,12 +199,12 @@ java -javaagent:app-encrypted.jar='-nopwd' -jar app-encrypted.jar
 
 1. 在目标机器生成机器码:
 ```bash
-java -jar classfinal-2.0.0.jar -C
+java -jar classfinal-2.0.1.jar -C
 ```
 
 2. 加密时绑定机器码:
 ```bash
-java -jar classfinal-2.0.0.jar \
+java -jar classfinal-2.0.1.jar \
   -file app.jar \
   -packages com.example \
   -pwd yourpassword \
@@ -221,21 +221,21 @@ java -jar classfinal-2.0.0.jar \
 **Linux (catalina.sh)**:
 ```bash
 # 方式1：使用引号包裹参数（推荐）
-CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-2.0.0.jar='-pwd yourpassword'"
+CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-2.0.1.jar='-pwd yourpassword'"
 export CATALINA_OPTS
 
 # 方式2：使用等号连接
-CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-2.0.0.jar=-pwd=yourpassword"
+CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-2.0.1.jar=-pwd=yourpassword"
 export CATALINA_OPTS
 ```
 
 **Windows (catalina.bat)**:
 ```bat
 REM 方式1：使用引号包裹参数（推荐）
-set JAVA_OPTS="-javaagent:C:\path\to\classfinal-2.0.0.jar='-pwd yourpassword'"
+set JAVA_OPTS="-javaagent:C:\path\to\classfinal-2.0.1.jar='-pwd yourpassword'"
 
 REM 方式2：使用等号连接
-set JAVA_OPTS="-javaagent:C:\path\to\classfinal-2.0.0.jar=-pwd=yourpassword"
+set JAVA_OPTS="-javaagent:C:\path\to\classfinal-2.0.1.jar=-pwd=yourpassword"
 ```
 
 ## 安全建议

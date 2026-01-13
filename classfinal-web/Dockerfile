@@ -1,5 +1,5 @@
 # ClassFinal Web UI 多阶段构建
-FROM maven:3.8-openjdk-8 AS builder
+FROM maven:3.9-eclipse-temurin-21 AS builder
 
 ARG USE_CHINA_MIRROR=true
 
@@ -26,13 +26,13 @@ RUN if [ "$USE_CHINA_MIRROR" = "true" ]; then \
 # 复制父项目 pom 和核心模块（用于本地构建依赖）
 COPY pom.xml .
 COPY classfinal-core ./classfinal-core
+COPY classfinal-fatjar ./classfinal-fatjar
+COPY classfinal-maven-plugin ./classfinal-maven-plugin
+COPY classfinal-web ./classfinal-web
 
-# 先构建并安装 classfinal-core 到本地仓库
+# 先构建并安装依赖到本地仓库
 RUN mvn install -pl classfinal-core -am -DskipTests -Dgpg.skip=true -B -q \
     -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-
-# 复制 classfinal-web 代码
-COPY classfinal-web ./classfinal-web
 
 # 构建 classfinal-web
 WORKDIR /build/classfinal-web
@@ -40,18 +40,17 @@ RUN mvn clean package -DskipTests -B -q \
     -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 # 运行时镜像
-FROM eclipse-temurin:8-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 
 LABEL org.opencontainers.image.source="https://github.com/ygqygq2/classfinal"
 LABEL org.opencontainers.image.description="ClassFinal Web UI"
 LABEL maintainer="ygqygq2"
-LABEL version="2.0.0-SNAPSHOT"
 
 WORKDIR /app
 
 # 从构建阶段复制 jar
 COPY --from=builder /build/classfinal-web/target/classfinal-web-*.jar /app/app.jar
 
-EXPOSE 59999
+EXPOSE 8080
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

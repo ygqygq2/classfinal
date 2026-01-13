@@ -14,15 +14,14 @@ import java.lang.reflect.Method;
 @SpringBootApplication
 public class Application {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
+        Const.pringInfo();
+        System.out.println("启动成功,访问期间请不要关闭此窗口!");
+        System.out.println("请用浏览器访问: http://localhost:8080");
+        
         SpringApplication springApplication = new SpringApplication(Application.class);
         springApplication.setBannerMode(Banner.Mode.OFF);
         springApplication.run(args);
-
-        Const.pringInfo();
-        System.out.println("启动成功,访问期间请不要关闭此窗口!");
-        System.out.println("请用浏览器访问: http://localhost:59999");
-        openURL("http://localhost:59999");
     }
 
     public static void openURL(String url) {

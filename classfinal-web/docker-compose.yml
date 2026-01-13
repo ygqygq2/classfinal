@@ -9,7 +9,7 @@ services:
     image: ghcr.io/ygqygq2/classfinal/classfinal-web:2.0.2-SNAPSHOT
     container_name: classfinal-web
     ports:
-      - "59999:59999"
+      - "8080:8080"
     environment:
       - JAVA_OPTS=-Xmx512m
     restart: unless-stopped
