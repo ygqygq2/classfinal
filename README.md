@@ -24,7 +24,7 @@ ClassFinal 是一款 Java class 文件加密工具，支持直接加密 jar 包�
 ## 文档
 
 - 📖 [架构设计文档](docs/01-architecture-design.md) - 详细的架构设计和技术原理
-- �� [Docker 使用指南](docs/02-docker-usage.md) - Docker 容器化部署和使用
+- 🐳 [Docker 使用指南](docs/02-docker-usage.md) - Docker 容器化部署和使用
 - 🛠️ [开发指南](docs/03-development-guide.md) - 开发环境配置和贡献指南
 - 🧪 [集成测试文档](docs/04-integration-testing.md) - 集成测试环境和测试流程
 - 📝 [更新日志](CHANGELOG.md) - 版本更新记录
@@ -33,71 +33,23 @@ ClassFinal 是一款 Java class 文件加密工具，支持直接加密 jar 包�
 
 ### 下载
 
-**Maven 依赖**:
-```xml
-<dependency>
-    <groupId>io.github.ygqygq2</groupId>
-    <artifactId>classfinal-core</artifactId>
-    <version>2.0.1</version>
-</dependency>
-```
-
-**独立 JAR**:  
-[GitHub Releases](https://github.com/ygqygq2/classfinal/releases)
-
 **Docker 镜像**:
 ```bash
-docker pull ghcr.io/ygqygq2/classfinal/classfinal:2.0.1
+docker pull ghcr.io/ygqygy2/classfinal/classfinal:2.0.1
+```
+
+**Maven 插件**:
+```xml
+<plugin>
+    <groupId>io.github.ygqygy2</groupId>
+    <artifactId>classfinal-maven-plugin</artifactId>
+    <version>2.0.1</version>
+</plugin>
 ```
 
 ### 加密 JAR
 
-```bash
-java -jar classfinal-2.0.1.jar \
-  -file yourproject.jar \
-  -packages com.yourpackage \
-  -pwd yourpassword \
-  -Y
-```
-
-**参数说明**:
-- `-file`: 要加密的 jar/war 路径
-- `-packages`: 要加密的包名（多个用逗号分隔）
-- `-pwd`: 加密密码
-- `-nopwd`: 无密码模式（与 `-pwd` 互斥）
-- `-libjars`: lib 目录下要加密的 jar（可选）
-- `-exclude`: 排除的类名（可选）
-- `-code`: 机器码绑定（可选）
-- `-Y`: 跳过确认提示
-
-**结果**: 生成 `yourproject-encrypted.jar`
-
-### 运行加密后的应用
-
-```bash
-# 方式1：使用引号包裹参数（推荐，支持所有 shell）
-java -javaagent:yourproject-encrypted.jar='-pwd yourpassword' \
-  -jar yourproject-encrypted.jar
-
-# 方式2：使用等号连接（无需引号）
-java -javaagent:yourproject-encrypted.jar=-pwd=yourpassword \
-  -jar yourproject-encrypted.jar
-```
-
-或使用环境变量:
-```bash
-# 方式1：使用引号包裹
-java -javaagent:yourproject-encrypted.jar='-pwdname MY_PASSWORD' \
-  -jar yourproject-encrypted.jar
-
-# 方式2：使用等号
-java -javaagent:yourproject-encrypted.jar=-pwdname=MY_PASSWORD \
-  -jar yourproject-encrypted.jar
-```
-
-### Docker 方式
-
-**加密**:
+**Docker 方式**:
 ```bash
 docker run --rm \
   -v $(pwd):/data \
@@ -107,31 +59,17 @@ docker run --rm \
   ghcr.io/ygqygq2/classfinal/classfinal:2.0.1 encrypt
 ```
 
-**运行**:
-```bash
-docker run --rm \
-  -v $(pwd):/data \
-  -e TARGET_JAR=/data/app-encrypted.jar \
-  -e PASSWORD=yourpassword \
-  ghcr.io/ygqygq2/classfinal/classfinal:2.0.1 agent
-```
+生成 `app-encrypted.jar`。更多用法见 [Docker 使用指南](docs/02-docker-usage.md)
 
-详见 [Docker 使用指南](docs/02-docker-usage.md)
-
-## Maven 插件
-
-在 `pom.xml` 中添加插件配置：
-
+**Maven 插件方式**:
 ```xml
 <plugin>
-    <groupId>io.github.ygqygq2</groupId>
+    <groupId>io.github.ygqygy2</groupId>
     <artifactId>classfinal-maven-plugin</artifactId>
     <version>2.0.1</version>
     <configuration>
         <password>yourpassword</password>
         <packages>com.example</packages>
-        <excludes>com.example.test</excludes>
-        <libjars>a.jar,b.jar</libjars>
     </configuration>
     <executions>
         <execution>
@@ -144,8 +82,7 @@ docker run --rm \
 </plugin>
 ```
 
-运行 `mvn package` 后自动生成加密后的 jar。
-
+运行 `mvn package` 自动生成加密 jar。
 ## 高级功能
 
 ### 配置文件 (2.0.1+)
