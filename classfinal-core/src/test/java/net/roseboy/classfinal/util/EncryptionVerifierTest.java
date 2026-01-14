@@ -1,8 +1,8 @@
 package net.roseboy.classfinal.util;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -12,7 +12,7 @@ import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.jar.Attributes;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * EncryptionVerifier 单元测试
@@ -24,12 +24,12 @@ public class EncryptionVerifierTest {
     
     private String testJarFile;
     
-    @Before
+    @BeforeEach
     public void setUp() {
         testJarFile = "/tmp/test-jar-" + System.currentTimeMillis() + ".jar";
     }
     
-    @After
+    @AfterEach
     public void tearDown() {
         if (testJarFile != null) {
             new File(testJarFile).delete();
@@ -44,10 +44,10 @@ public class EncryptionVerifierTest {
         EncryptionVerifier.VerifyResult result = EncryptionVerifier.verify(testJarFile);
         
         assertNotNull(result);
-        assertFalse("应该识别为未加密", result.isEncrypted());
-        assertTrue("应该有类文件", result.getTotalClasses() > 0);
-        assertEquals("未加密 JAR 加密类数应为 0", 0, result.getEncryptedClasses());
-        assertEquals("加密率应为 0", 0.0, result.getEncryptionRate(), 0.01);
+        assertFalse(result.isEncrypted(), "应该识别为未加密");
+        assertTrue(result.getTotalClasses() > 0, "应该有类文件");
+        assertEquals(0, result.getEncryptedClasses(), "未加密 JAR 加密类数应为 0");
+        assertEquals(0.0, result.getEncryptionRate(), 0.01, "加密率应为 0");
     }
     
     @Test
@@ -58,8 +58,8 @@ public class EncryptionVerifierTest {
         EncryptionVerifier.VerifyResult result = EncryptionVerifier.verify(testJarFile);
         
         assertNotNull(result);
-        assertTrue("应该识别为已加密", result.isEncrypted());
-        assertEquals("加密方法应为 AES", "AES", result.getEncryptionMethod());
+        assertTrue(result.isEncrypted(), "应该识别为已加密");
+        assertEquals("AES", result.getEncryptionMethod(), "加密方法应为 AES");
     }
     
     @Test
@@ -134,9 +134,9 @@ public class EncryptionVerifierTest {
             EncryptionVerifier.printResult(result);
             
             String output = outContent.toString();
-            assertTrue("输出应包含标题", output.contains("JAR 加密验证结果"));
-            assertTrue("输出应包含加密状态", output.contains("已加密"));
-            assertTrue("输出应包含分隔线", output.contains("========================================="));
+            assertTrue(output.contains("JAR 加密验证结果"), "输出应包含标题");
+            assertTrue(output.contains("已加密"), "输出应包含加密状态");
+            assertTrue(output.contains("========================================="), "输出应包含分隔线");
         } finally {
             System.setOut(originalOut);
         }
@@ -156,16 +156,18 @@ public class EncryptionVerifierTest {
             EncryptionVerifier.printResult(result);
             
             String output = outContent.toString();
-            assertTrue("输出应包含未加密状态", output.contains("未加密"));
-            assertTrue("输出应包含总类数", output.contains("总类数"));
+            assertTrue(output.contains("未加密"), "输出应包含未加密状态");
+            assertTrue(output.contains("总类数"), "输出应包含总类数");
         } finally {
             System.setOut(originalOut);
         }
     }
     
-    @Test(expected = IOException.class)
-    public void testVerifyNonExistentJar() throws IOException {
-        EncryptionVerifier.verify("/tmp/non-existent-jar-12345.jar");
+    @Test
+    public void testVerifyNonExistentJar() {
+        assertThrows(IOException.class, () -> {
+            EncryptionVerifier.verify("/tmp/non-existent-jar-12345.jar");
+        });
     }
     
     @Test

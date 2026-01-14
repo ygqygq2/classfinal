@@ -146,7 +146,7 @@ public class JarEncryptor {
         List<String> encryptClass = encryptClass(classFiles);
         this.encryptFileCount = encryptClass.size();
 
-        //[5]清空class方法体，并保存文件
+        //[5]清空方法体（新策略：直接字节码替换，不使用Javassist的StackMapTable重建）
         clearClassMethod(classFiles);
 
         //[6]加密配置文件
@@ -212,21 +212,37 @@ public class JarEncryptor {
             IoUtils.writeFile(configCode, StrUtils.toBytes(EncryptUtils.md5(this.code)));
         }
 
-        //加密另存
+        //加密另存 - 跳过包含Lambda的类以避免StackMapTable重建问题
         ProgressBar progress = new ProgressBar("加密类文件", classFiles.size());
-        classFiles.forEach(classFile -> {
+        int skippedLambdaCount = 0;
+        
+        for (File classFile : classFiles) {
             String className = classFile.getName();
             if (className.endsWith(".class")) {
                 className = resolveClassName(classFile.getAbsolutePath(), true);
             }
+            
             byte[] bytes = IoUtils.readFileToByte(classFile);
+            
+            // 检测是否包含Lambda表达式
+            if (ByteCodeAnalyzer.containsLambda(bytes)) {
+                Log.debug("跳过包含Lambda的类: " + className);
+                skippedLambdaCount++;
+                progress.increment();
+                progress.display();
+                continue; // 不加密该类
+            }
+            
+            // 加密类文件
             char[] pass = StrUtils.merger(this.password, className.toCharArray());
             bytes = EncryptUtils.en(bytes, pass, Const.ENCRYPT_TYPE);
+            
             //有机器码，再用机器码加密一遍
             if (StrUtils.isNotEmpty(this.code)) {
                 pass = StrUtils.merger(className.toCharArray(), this.code);
                 bytes = EncryptUtils.en(bytes, pass, Const.ENCRYPT_TYPE);
             }
+            
             File targetFile = new File(metaDir, className);
             IoUtils.writeFile(targetFile, bytes);
             encryptClasses.add(className);
@@ -235,7 +251,12 @@ public class JarEncryptor {
             progress.display();
             
             Log.debug("加密：" + className);
-        });
+        }
+        
+        // 输出统计信息
+        if (skippedLambdaCount > 0) {
+            Log.println("\n跳过了 " + skippedLambdaCount + " 个包含Lambda表达式的类（避免StackMapTable问题）");
+        }
 
         //加密密码hash存储，用来验证密码是否正确
         char[] pchar = EncryptUtils.md5(StrUtils.merger(this.password, EncryptUtils.SALT));
@@ -279,10 +300,18 @@ public class JarEncryptor {
 
         });
 
-        //[2]修改class方法体，并保存文件
+        //[2]修改class方法体，并保存文件（跳过Lambda类）
         classFiles.forEach(classFile -> {
             //解析出类全名
             String className = resolveClassName(classFile.getAbsolutePath(), true);
+            
+            // 检测是否包含Lambda，跳过清空方法体
+            byte[] classBytes = IoUtils.readFileToByte(classFile);
+            if (ByteCodeAnalyzer.containsLambda(classBytes)) {
+                Log.debug("跳过清空Lambda类方法体: " + className);
+                return; // 不清空该类的方法体
+            }
+            
             byte[] bts = null;
             try {
                 Log.debug("清除方法体: " + className);

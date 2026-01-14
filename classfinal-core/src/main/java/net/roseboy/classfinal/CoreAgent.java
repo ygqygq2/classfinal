@@ -103,12 +103,19 @@ public class CoreAgent {
                 Log.println("\nERROR: Startup failed, invalid password.\n");
                 System.exit(0);
             }
+            Log.println("密码验证通过");
+        } else {
+            Log.println("未找到密码哈希文件，跳过密码验证");
         }
 
         //GO
         if (inst != null) {
+            Log.println("正在初始化类转换器...");
             AgentTransformer tran = new AgentTransformer(pwd);
             inst.addTransformer(tran);
+            Log.println("类转换器已成功注册，应用程序启动中...\n");
+        } else {
+            Log.println("警告：Instrumentation 为空，无法注册类转换器");
         }
     }
 

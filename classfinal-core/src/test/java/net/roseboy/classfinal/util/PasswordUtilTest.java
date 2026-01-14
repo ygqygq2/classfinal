@@ -1,12 +1,12 @@
 package net.roseboy.classfinal.util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * PasswordUtil 单元测试
@@ -67,9 +67,11 @@ public class PasswordUtilTest {
         }
     }
     
-    @Test(expected = IOException.class)
-    public void testReadPasswordFromNonExistentFile() throws IOException {
-        PasswordUtil.readPasswordFromFile("/tmp/non-existent-file.txt", false);
+    @Test
+    public void testReadPasswordFromNonExistentFile() {
+        assertThrows(IOException.class, () -> {
+            PasswordUtil.readPasswordFromFile("/tmp/non-existent-file.txt", false);
+        });
     }
     
     @Test

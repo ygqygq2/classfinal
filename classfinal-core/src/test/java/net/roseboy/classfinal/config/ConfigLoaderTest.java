@@ -1,8 +1,8 @@
 package net.roseboy.classfinal.config;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * ConfigLoader 单元测试
@@ -23,12 +23,12 @@ public class ConfigLoaderTest {
     
     private String testConfigFile;
     
-    @Before
+    @BeforeEach
     public void setUp() {
         testConfigFile = "/tmp/test-config-" + System.currentTimeMillis() + ".yml";
     }
     
-    @After
+    @AfterEach
     public void tearDown() {
         if (testConfigFile != null) {
             new File(testConfigFile).delete();
@@ -217,18 +217,26 @@ public class ConfigLoaderTest {
         assertTrue(config.getEncryption().isDeletePasswordFile());
     }
     
-    @Test(expected = FileNotFoundException.class)
-    public void testLoadNonExistentFile() throws IOException {
-        ConfigLoader.load("/tmp/non-existent-config-file-12345.yml");
+    @Test
+    public void testLoadNonExistentFile() {
+        assertThrows(FileNotFoundException.class, () -> {
+            ConfigLoader.load("/tmp/non-existent-config-file-12345.yml");
+        });
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testLoadUnsupportedFormat() throws IOException {
         String txtFile = "/tmp/test-config.txt";
         Files.write(Paths.get(txtFile), "test".getBytes());
         
         try {
-            ConfigLoader.load(txtFile);
+            assertThrows(IllegalArgumentException.class, () -> {
+                try {
+                    ConfigLoader.load(txtFile);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
         } finally {
             new File(txtFile).delete();
         }

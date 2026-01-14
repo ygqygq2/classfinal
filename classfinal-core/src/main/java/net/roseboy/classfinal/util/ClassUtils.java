@@ -17,6 +17,68 @@ import java.util.List;
 public class ClassUtils {
 
     /**
+     * 清空方法体：用简单的 return/throw 替换
+     */
+    private static void clearMethodBodyDirect(CtMethod m) throws Exception {
+        CtClass returnType = m.getReturnType();
+        String returnTypeName = returnType.getName();
+        
+        // 根据返回类型生成简单的return语句
+        String newBody;
+        if ("void".equals(returnTypeName)) {
+            newBody = "{ return; }";
+        } else if ("boolean".equals(returnTypeName)) {
+            newBody = "{ return false; }";
+        } else if ("byte".equals(returnTypeName) || "short".equals(returnTypeName) 
+                || "int".equals(returnTypeName) || "long".equals(returnTypeName)
+                || "float".equals(returnTypeName) || "double".equals(returnTypeName)
+                || "char".equals(returnTypeName)) {
+            newBody = "{ return 0; }";
+        } else {
+            newBody = "{ return null; }";
+        }
+        
+        // 使用Javassist的setBody，但不重建StackMapTable
+        m.setBody(newBody);
+    }
+
+    /**
+     * 判断类是否安全可清空方法体
+     * 安全类特征：
+     * 1. 常量类（类名包含Const/Constant）
+     * 2. 简单POJO（类名包含DTO/VO/Entity/Model/Bean/Info/Data）
+     * 注意：枚举类不能清空（Jackson/框架依赖values()方法）
+     */
+    private static boolean isSafeToClean(CtClass cc) throws Exception {
+        String className = cc.getSimpleName();
+        
+        // 枚举类不安全（依赖values()/valueOf()等方法）
+        if (cc.isEnum()) {
+            return false;
+        }
+        
+        // 注解类安全
+        if (cc.isAnnotation()) {
+            return true;
+        }
+        
+        // 常量类（类名包含Const/Constant）
+        if (className.contains("Const") || className.contains("Constant")) {
+            return true;
+        }
+        
+        // POJO/DTO/VO等数据类
+        String[] safePatterns = {"DTO", "VO", "Entity", "Model", "Bean", "Info", "Data", "Param", "Request", "Response"};
+        for (String pattern : safePatterns) {
+            if (className.contains(pattern)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
      * 清空方法
      *
      * @param pool      javassist的ClassPool
@@ -27,28 +89,37 @@ public class ClassUtils {
         String name = null;
         try {
             CtClass cc = pool.getCtClass(classname);
+            
+            // 只清空安全的类（常量/枚举/POJO等）
+            if (!isSafeToClean(cc)) {
+                return cc.toBytecode();
+            }
+            
             CtMethod[] methods = cc.getDeclaredMethods();
 
             for (CtMethod m : methods) {
                 name = m.getName();
-                //不是构造方法，在当前类，不是父lei
+                //不是构造方法，在当前类
                 if (!m.getName().contains("<") && m.getLongName().startsWith(cc.getName())) {
-                    //m.setBody(null);//清空方法体
                     CodeAttribute ca = m.getMethodInfo().getCodeAttribute();
-                    //接口的ca就是null,方法体本来就是空的就是-79
-                    if (ca != null && ca.getCodeLength() != 1 && ca.getCode()[0] != -79) {
-                        ClassUtils.setBodyKeepParamInfos(m, null, true);
-                        if ("void".equalsIgnoreCase(m.getReturnType().getName()) && m.getLongName().endsWith(".main(java.lang.String[])") && m.getMethodInfo().getAccessFlags() == 9) {
-                            m.insertBefore("System.out.println(\"\\nStartup failed, invalid password.\\n\");");
+                    if (ca != null && ca.getCodeLength() > 1) {
+                        int modifiers = m.getModifiers();
+                        
+                        // 跳过main方法和abstract/native方法
+                        boolean isMainMethod = m.getLongName().endsWith(".main(java.lang.String[])")
+                                && Modifier.isStatic(modifiers) && Modifier.isPublic(modifiers);
+                        boolean isAbstract = Modifier.isAbstract(modifiers);
+                        boolean isNative = Modifier.isNative(modifiers);
+                        
+                        if (!isMainMethod && !isAbstract && !isNative) {
+                            clearMethodBodyDirect(m);
                         }
-
                     }
-
                 }
             }
             return cc.toBytecode();
         } catch (Exception e) {
-            throw new RuntimeException("[" + classname + "(" + name + ")]" + e.getMessage());
+            throw new RuntimeException("[" + classname + "(" + name + ")]" + e.getMessage(), e);
         }
     }
 
