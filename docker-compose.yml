@@ -462,7 +462,8 @@ services:
 
         # 只构建主项目模块，排除 integration-test 目录
         # 使用 -f 直接指定根 pom，避免 Maven 扫描 test-apps 中的 pom.xml
-        mvn clean install -f pom.xml -pl classfinal-core,classfinal-maven-plugin -am -DskipTests -Dgpg.skip=true -B -q -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+        echo "构建并安装 Maven 插件（可能需要几分钟）..."
+        mvn clean install -f pom.xml -pl classfinal-core,classfinal-maven-plugin -am -DskipTests -Dgpg.skip=true -B -q -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn 2>&1 | grep -v -E "^Downloading|^Downloaded|Progress \(|from central|from aliyunmaven" || true
         echo "✓ Maven 插件已安装到本地仓库"
         ls -la /root/.m2/repository/io/github/ygqygq2/ || echo "安装可能失败"
         # 修复权限（Docker容器创建的文件为root所有）
@@ -496,8 +497,8 @@ services:
         echo "检查 Maven 仓库中的 SNAPSHOT..."
         ls -la /root/.m2/repository/io/github/ygqygq2/ || echo "目录不存在"
         # 执行构建
-        echo "正在构建..."
-        mvn clean package -Dgpg.skip=true -B
+        echo "正在构建（可能需要几分钟）..."
+        mvn clean package -Dgpg.skip=true -B -q -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn 2>&1 | grep -v -E "^Downloading|^Downloaded|Progress \(|from central|from aliyunmaven" || true
         if [ -f target/classfinal-test-maven-plugin-*-encrypted.jar ]; then
           echo "✓ Maven 插件加密成功"
           cp target/classfinal-test-maven-plugin-*-encrypted.jar /data/app-maven-encrypted.jar
@@ -533,6 +534,8 @@ services:
           exit 1
         fi
     volumes:
+      - ./integration-test/test-apps/maven-plugin/pom.xml:/workspace/integration-test/test-apps/maven-plugin/pom.xml:ro
+      - ./integration-test/test-apps/maven-plugin/src:/workspace/integration-test/test-apps/maven-plugin/src:ro
       - test-data:/data
       - maven-local-repo:/root/.m2/repository
     depends_on:
