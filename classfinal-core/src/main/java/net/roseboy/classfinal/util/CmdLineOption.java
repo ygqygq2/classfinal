@@ -62,6 +62,14 @@ public class CmdLineOption {
             String arg = arguments[i];
 
             if (arg.startsWith("-") || arg.startsWith("--")) {
+                // 支持等号语法: -option=value
+                String optValue = null;
+                if (arg.contains("=")) {
+                    int eqIndex = arg.indexOf('=');
+                    optValue = arg.substring(eqIndex + 1);
+                    arg = arg.substring(0, eqIndex);
+                }
+                
                 arg = resolveOption(arg);
 
                 //check last option hasArg
@@ -77,6 +85,11 @@ public class CmdLineOption {
                     throw new IllegalArgumentException("Unrecognized option: " + arguments[i]);
                 }
                 optionsMap.put(arg, new ArrayList<>());
+                
+                // 如果使用了等号语法，立即添加值
+                if (optValue != null) {
+                    optionsMap.get(arg).add(optValue);
+                }
             } else if (optIndex > -1) {
                 String option = options.get(optIndex);
                 optionsMap.get(option).add(arg);

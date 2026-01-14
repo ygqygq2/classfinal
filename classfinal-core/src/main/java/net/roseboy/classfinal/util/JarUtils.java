@@ -1,9 +1,7 @@
 package net.roseboy.classfinal.util;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
+import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -16,6 +14,9 @@ import java.util.zip.ZipOutputStream;
 public class JarUtils {
     //打包时需要删除的文件
     public static final String[] DLE_FILES = {".DS_Store", "Thumbs.db"};
+    
+    //记录原JAR的entry顺序，key=targetDir路径, value=entry名称->顺序索引
+    private static final Map<String, LinkedHashMap<String, Integer>> JAR_ENTRY_ORDER = new HashMap<>();
 
     /**
      * 把目录压缩成jar
@@ -29,6 +30,23 @@ public class JarUtils {
         //枚举jarDir下的所有文件以及目录
         List<File> files = new ArrayList<>();
         IoUtils.listFile(files, jarDirFile);
+        
+        // 按原JAR的entry顺序排序，如果有记录的话
+        LinkedHashMap<String, Integer> entryOrder = JAR_ENTRY_ORDER.get(jarDir);
+        if (entryOrder != null && !entryOrder.isEmpty()) {
+            files.sort((f1, f2) -> {
+                String path1 = f1.getAbsolutePath().substring(jarDirFile.getAbsolutePath().length() + 1).replace(File.separator, "/");
+                String path2 = f2.getAbsolutePath().substring(jarDirFile.getAbsolutePath().length() + 1).replace(File.separator, "/");
+                Integer order1 = entryOrder.getOrDefault(path1, Integer.MAX_VALUE);
+                Integer order2 = entryOrder.getOrDefault(path2, Integer.MAX_VALUE);
+                int cmp = order1.compareTo(order2);
+                // 如果顺序相同或都没有记录，则按路径字母序
+                return cmp != 0 ? cmp : path1.compareTo(path2);
+            });
+        } else {
+            // 如果没有记录原始顺序，至少保证按字母序排序（确定性）
+            files.sort((f1, f2) -> f1.getAbsolutePath().compareTo(f2.getAbsolutePath()));
+        }
 
         ZipOutputStream zos = null;
         OutputStream out = null;
@@ -110,6 +128,9 @@ public class JarUtils {
         if (!target.exists()) {
             target.mkdirs();
         }
+        
+        // 记录原JAR的entry顺序
+        LinkedHashMap<String, Integer> entryOrder = new LinkedHashMap<>();
 
         FileInputStream fin = null;
         ZipFile zipFile = null;
@@ -117,8 +138,17 @@ public class JarUtils {
             zipFile = new ZipFile(new File(jarPath));
             ZipEntry entry;
             File targetFile;
-            //先把文件夹创建出来
+            
+            // 第一次遍历：记录所有entry的顺序
             Enumeration<?> entries = zipFile.entries();
+            int orderIndex = 0;
+            while (entries.hasMoreElements()) {
+                entry = (ZipEntry) entries.nextElement();
+                entryOrder.put(entry.getName(), orderIndex++);
+            }
+            
+            //先把文件夹创建出来
+            entries = zipFile.entries();
             while (entries.hasMoreElements()) {
                 entry = (ZipEntry) entries.nextElement();
                 if (entry.isDirectory()) {
@@ -154,6 +184,9 @@ public class JarUtils {
                 IoUtils.writeFile(targetFile, bytes);
                 list.add(targetFile.getAbsolutePath());
             }
+            
+            // 保存entry顺序记录
+            JAR_ENTRY_ORDER.put(targetDir, entryOrder);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

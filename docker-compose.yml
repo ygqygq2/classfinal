@@ -182,6 +182,57 @@ services:
     networks:
       - test-network
 
+  # 测试：JAVA_OPTS环境变量传参（固定启动脚本场景）
+  test-java-opts-env:
+    image: eclipse-temurin:21-jre-alpine
+    container_name: test-java-opts-env
+    volumes:
+      - test-data:/data
+    environment:
+      - CLASSFINAL_PASSWORD=test123
+      - JAVA_OPTS=-javaagent:/data/app-encrypted.jar=-pwdname=CLASSFINAL_PASSWORD -Xmx256m
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "=== 测试: JAVA_OPTS环境变量传参 ==="
+        echo "启动脚本: exec java \$${JAVA_OPTS} -jar /data/app-encrypted.jar"
+        echo "JAVA_OPTS=$${JAVA_OPTS}"
+        echo ""
+        # 模拟固定启动脚本（用户无法修改）
+        exec java $${JAVA_OPTS} -jar /data/app-encrypted.jar
+    depends_on:
+      encrypt-app:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - test-network
+
+  # curl 验证: JAVA_OPTS环境变量测试
+  verify-java-opts-env:
+    image: curlimages/curl:latest
+    container_name: verify-java-opts-env
+    command:
+      - sh
+      - -c
+      - |
+        echo "=== 验证 JAVA_OPTS 环境变量传参 ==="
+        sleep 10
+        curl -f http://test-java-opts-env:8080/health || exit 1
+        echo "✓ 健康检查成功"
+        curl -f http://test-java-opts-env:8080/test || exit 1
+        echo "✓ 功能测试成功"
+    depends_on:
+      test-java-opts-env:
+        condition: service_started
+    networks:
+      - test-network
+
   # 测试：使用错误密码运行加密应用（应该失败）
   test-encrypted-wrong-password:
     image: ghcr.io/ygqygq2/classfinal/classfinal:2.0.2

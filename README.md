@@ -220,21 +220,17 @@ java -jar classfinal-2.0.1.jar \
 
 **Linux (catalina.sh)**:
 ```bash
-# 方式1：使用引号包裹参数（推荐）
-CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-2.0.1.jar='-pwd yourpassword'"
-export CATALINA_OPTS
+# 方式1：使用等号连接（推荐，适用于JAVA_OPTS场景）
+export CLASSFINAL_PASSWORD=yourpassword
+export CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-2.0.1.jar=-pwdname=CLASSFINAL_PASSWORD"
 
-# 方式2：使用等号连接
+# 方式2：直接写密码
 CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-2.0.1.jar=-pwd=yourpassword"
 export CATALINA_OPTS
 ```
 
 **Windows (catalina.bat)**:
 ```bat
-REM 方式1：使用引号包裹参数（推荐）
-set JAVA_OPTS="-javaagent:C:\path\to\classfinal-2.0.1.jar='-pwd yourpassword'"
-
-REM 方式2：使用等号连接
 set JAVA_OPTS="-javaagent:C:\path\to\classfinal-2.0.1.jar=-pwd=yourpassword"
 ```
 
