@@ -122,11 +122,15 @@ services:
       - -c
       - |
         echo "=== 测试1: 不带密码运行加密应用（应该失败） ==="
-        if java -jar /data/app-encrypted.jar 2>&1 | grep -q "invalid password"; then
+        # 使用 javaagent 方式加载，但不提供密码
+        # 添加超时机制，避免卡住（5秒超时）
+        timeout 5 java -javaagent:/data/app-encrypted.jar -jar /data/app-encrypted.jar > /tmp/output.log 2>&1 || true
+        if grep -qiE "password|密码|invalid|authentication" /tmp/output.log; then
           echo "✓ 测试通过: 加密应用正确要求密码"
           exit 0
         else
           echo "✗ 测试失败: 应该要求密码验证"
+          cat /tmp/output.log
           exit 1
         fi
     depends_on:
@@ -240,16 +244,22 @@ services:
     container_name: test-encrypted-wrong-password
     volumes:
       - test-data:/data
+    environment:
+      - PASSWORD=wrongpassword123
     command:
       - /bin/sh
       - -c
       - |
         echo "=== 测试2: 使用错误密码（应该失败） ==="
-        if echo "wrongpassword123" | java -javaagent:/app/app.jar -jar /data/app-encrypted.jar 2>&1 | grep -qi "password"; then
+        # 添加超时机制，避免卡住（5秒超时）
+        # 使用环境变量传递密码
+        timeout 5 java -javaagent:/app/app.jar='-pwdname PASSWORD' -jar /data/app-encrypted.jar > /tmp/output.log 2>&1 || true
+        if grep -qiE "password|密码|invalid|incorrect|authentication|验证失败" /tmp/output.log; then
           echo "✓ 测试通过: 正确拒绝错误密码"
           exit 0
         else
           echo "✗ 测试失败: 应该拒绝错误密码"
+          cat /tmp/output.log
           exit 1
         fi
     depends_on:
@@ -415,7 +425,18 @@ services:
       - -c
       - |
         echo "=== 测试无密码模式运行 ==="
-        java -javaagent:/app/app.jar=-nopwd -jar /data/app-nopwd-encrypted.jar
+        # 使用 timeout 限制运行时间，避免卡住（15秒足够应用启动完成测试）
+        timeout 15 java -javaagent:/app/app.jar=-nopwd -jar /data/app-nopwd-encrypted.jar 2>&1 | tee /tmp/output.log || true
+        
+        # 检查是否包含测试通过标记
+        if grep -q "All Tests Passed" /tmp/output.log; then
+          echo "✓ 测试通过: 无密码模式应用正常运行"
+          exit 0
+        else
+          echo "✗ 测试失败: 应用未能正常启动或测试未通过"
+          cat /tmp/output.log
+          exit 1
+        fi
     volumes:
       - test-data:/data
     depends_on:

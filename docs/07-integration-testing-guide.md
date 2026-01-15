@@ -15,7 +15,7 @@
 - ✅ 使用本地环境变量（`SONATYPE_USERNAME`, `SONATYPE_PASSWORD`）
 - ✅ 使用国内镜像源加速构建（`USE_CHINA_MIRROR=true`）
 - ✅ 详细的彩色日志输出
-- ✅ 完整的 24 个测试场景（包含 2.0.1 新功能）
+- ✅ 完整的 24 个测试场景
 
 **使用方法**:
 
@@ -69,7 +69,7 @@ bash integration-test/run-local-tests.sh
 20. **反编译保护验证** - 反编译检测
 21. **Maven 本地安装** - Maven install 测试
 
-### 步骤 22-24: 2.0.1 新功能测试
+### 步骤 22-24: 新功能测试
 
 22. **配置文件参数测试 (--config)**
     - 创建 YAML 配置文件

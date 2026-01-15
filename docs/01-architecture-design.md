@@ -222,7 +222,7 @@ test-app 镜像内的 /app/app.jar
 
 ### Git 标签与版本
 
-- 发布版本使用 Git tag: `v2.0.0`, `v2.1.0`, etc.
+- 发布版本使用 Git tag: `vX.Y.Z` 格式
 - CI/CD 自动从 tag 提取版本号设置 `CLASSFINAL_VERSION`
 - 开发版本默认显示 `vdev`
 
@@ -270,9 +270,9 @@ test-app 镜像内的 /app/app.jar
 
 ### 镜像命名规范
 
-- **ClassFinal 工具**: `ghcr.io/ygqygq2/classfinal/classfinal:2.0.0`
-- **测试应用**: `ghcr.io/ygqygq2/classfinal/test-app:1.0.0`
-- **Web 控制台**: `ghcr.io/ygqygq2/classfinal/web:2.0.0`
+- **ClassFinal 工具**: `ghcr.io/ygqygq2/classfinal/classfinal:latest`
+- **测试应用**: `ghcr.io/ygqygq2/classfinal/test-app:latest`
+- **Web 控制台**: `ghcr.io/ygqygq2/classfinal/web:latest`
 
 标签策略：
 

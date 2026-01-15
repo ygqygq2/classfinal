@@ -24,7 +24,7 @@ docker run --rm \
   -e INPUT_FILE=/data/app.jar \
   -e PACKAGES=com.example \
   -e PASSWORD=mypassword \
-  ghcr.io/ygqygq2/classfinal/classfinal:2.0.0 encrypt
+  ghcr.io/ygqygq2/classfinal/classfinal:latest encrypt
 ```
 
 #### JavaAgent 模式（运行加密的应用）
@@ -34,23 +34,23 @@ docker run --rm \
   -v $(pwd)/target:/data \
   -e TARGET_JAR=/data/app-encrypted.jar \
   -e PASSWORD=mypassword \
-  ghcr.io/ygqygq2/classfinal/classfinal:2.0.0 agent
+  ghcr.io/ygqygq2/classfinal/classfinal:latest agent
 ```
 
 #### 普通运行模式
 
 ```bash
-docker run --rm ghcr.io/ygqygq2/classfinal/classfinal:2.0.0 run --help
+docker run --rm ghcr.io/ygqygq2/classfinal/classfinal:latest run --help
 ```
 
 #### 自定义命令（调试模式）
 
 ```bash
 # 进入容器 shell
-docker run --rm -it ghcr.io/ygqygq2/classfinal/classfinal:2.0.0 /bin/sh
+docker run --rm -it ghcr.io/ygqygq2/classfinal/classfinal:latest /bin/sh
 
 # 执行自定义命令
-docker run --rm ghcr.io/ygqygq2/classfinal/classfinal:2.0.0 ls -la /app
+docker run --rm ghcr.io/ygqygq2/classfinal/classfinal:latest ls -la /app
 ```
 
 ### 3. 集成测试

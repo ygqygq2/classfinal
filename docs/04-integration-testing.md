@@ -31,11 +31,11 @@ docker-compose down -v
 
 1. classfinal-builder
    ↓ 编译 ClassFinal 项目
-   └── 生成 classfinal-2.0.0.jar
+   └── 生成 classfinal-fatjar.jar
 
 2. test-app-builder
    ↓ 编译测试应用
-   └── 生成 classfinal-test-app-1.0.0.jar
+   └── 生成 classfinal-test-app.jar
 
 3. test-original-app
    ↓ 运行原始应用（baseline）
@@ -43,7 +43,7 @@ docker-compose down -v
 
 4. classfinal-encryptor
    ↓ 使用 ClassFinal 加密测试应用
-   └── 生成 classfinal-test-app-1.0.0-encrypted.jar
+   └── 生成 classfinal-test-app-encrypted.jar
 
 5. test-encrypted-no-password
    ↓ 尝试无密码运行加密应用
@@ -60,13 +60,13 @@ docker-compose down -v
 
 - **镜像**: maven:3.8-openjdk-8
 - **功能**: 编译 ClassFinal 主项目
-- **输出**: `classfinal-fatjar/target/classfinal-2.0.0.jar`
+- **输出**: `classfinal-fatjar/target/classfinal-fatjar-*.jar`
 
 ### test-app-builder
 
 - **镜像**: maven:3.8-openjdk-8
 - **功能**: 编译测试应用程序
-- **输出**: `integration-test/classfinal-test-app-1.0.0.jar`
+- **输出**: `integration-test/classfinal-test-app-*.jar`
 
 ### classfinal-encryptor
 

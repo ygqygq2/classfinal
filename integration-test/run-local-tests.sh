@@ -147,11 +147,17 @@ function Main() {
     Log_Success "应用加密成功"
     
     Log_Step "6" "测试无密码运行加密应用"
-    if Docker_Compose run --rm test-encrypted-no-password 2>&1 | grep -q "测试通过"; then
+    temp_log=$(mktemp)
+    Docker_Compose run --rm test-encrypted-no-password 2>&1 | tee "$temp_log"
+    if grep -q "✓ 测试通过" "$temp_log"; then
         Log_Success "加密应用正确要求密码验证"
     else
-        Log_Warning "无密码测试未按预期运行"
+        Log_Error "无密码测试失败"
+        cat "$temp_log"
+        rm -f "$temp_log"
+        exit 1
     fi
+    rm -f "$temp_log"
     
     Log_Step "7" "测试使用正确密码运行"
     Docker_Compose up -d test-encrypted-with-password >/dev/null 2>&1
@@ -177,11 +183,17 @@ function Main() {
     Log_Success "加密应用使用正确密码运行成功"
     
     Log_Step "8" "测试使用错误密码运行"
-    if Docker_Compose run --rm test-encrypted-wrong-password 2>&1 | grep -q "测试通过"; then
+    temp_log=$(mktemp)
+    Docker_Compose run --rm test-encrypted-wrong-password 2>&1 | tee "$temp_log"
+    if grep -q "✓ 测试通过" "$temp_log"; then
         Log_Success "加密应用正确拒绝错误密码"
     else
-        Log_Warning "错误密码测试未按预期运行"
+        Log_Error "错误密码测试失败"
+        cat "$temp_log"
+        rm -f "$temp_log"
+        exit 1
     fi
+    rm -f "$temp_log"
     
     Log_Step "9" "准备多包加密测试"
     Docker_Compose run --rm prepare-multipackage-test >/dev/null 2>&1
@@ -218,12 +230,37 @@ function Main() {
     Log_Step "13" "测试无密码模式"
     Docker_Compose run --rm prepare-nopwd-test >/dev/null 2>&1
     Docker_Compose run --rm encrypt-nopwd >/dev/null 2>&1
-    Docker_Compose run --rm test-encrypted-nopwd >/dev/null 2>&1
-    Log_Success "无密码模式测试通过"
+    
+    Log_Info "测试无密码模式运行（限时15秒）..."
+    temp_log=$(mktemp)
+    Docker_Compose run --rm test-encrypted-nopwd 2>&1 | tee "$temp_log"
+    if grep -q "✓ 测试通过" "$temp_log"; then
+        Log_Success "无密码模式测试通过"
+    else
+        Log_Error "无密码模式测试失败"
+        cat "$temp_log"
+        rm -f "$temp_log"
+        exit 1
+    fi
+    rm -f "$temp_log"
     
     Log_Step "14" "安装 classfinal-maven-plugin 到本地仓库"
-    Docker_Compose run --rm install-maven-plugin >/dev/null 2>&1
-    Log_Success "Maven 插件安装完成"
+    Log_Info "开始安装 Maven 插件（可能需要几分钟，请耐心等待）..."
+    temp_log=$(mktemp)
+    if Docker_Compose run --rm install-maven-plugin 2>&1 | grep -v -E "^Downloading|^Downloaded|Progress \(|from central|from aliyunmaven" > "$temp_log"; then
+        if grep -qE "✓.*已安装到本地仓库|BUILD SUCCESS" "$temp_log"; then
+            Log_Success "Maven 插件安装完成"
+        else
+            Log_Warning "Maven 插件可能安装失败，检查输出："
+            tail -20 "$temp_log"
+        fi
+    else
+        Log_Error "Maven 插件安装失败"
+        cat "$temp_log"
+        rm -f "$temp_log"
+        exit 1
+    fi
+    rm -f "$temp_log"
     
     Log_Step "15" "Maven 插件集成测试"
     Log_Info "构建并运行 Maven 插件测试应用（可能需要较长时间）..."

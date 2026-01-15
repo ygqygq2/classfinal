@@ -24,6 +24,47 @@ EOF
     exit 1
 }
 
+function Build_Docker_Images() {
+    local version="$1"
+    
+    echo ">>> 构建 Docker 镜像: version=$version"
+    
+    # 构建 ClassFinal 主镜像
+    echo "  构建 classfinal:$version ..."
+    docker build -t "ghcr.io/ygqygq2/classfinal/classfinal:$version" \
+                 -t "ghcr.io/ygqygq2/classfinal/classfinal:latest" \
+                 -f Dockerfile . || {
+        echo "❌ ClassFinal 镜像构建失败"
+        return 1
+    }
+    echo "  ✓ classfinal:$version 构建成功"
+    
+    # 构建 ClassFinal Web 镜像
+    echo "  构建 classfinal-web:$version ..."
+    docker build -t "ghcr.io/ygqygq2/classfinal/classfinal-web:$version" \
+                 -t "ghcr.io/ygqygq2/classfinal/classfinal-web:latest" \
+                 -f classfinal-web/Dockerfile \
+                 --build-arg VERSION="$version" \
+                 . || {
+        echo "❌ ClassFinal Web 镜像构建失败"
+        return 1
+    }
+    echo "  ✓ classfinal-web:$version 构建成功"
+    
+    # 询问是否推送
+    echo ""
+    read -p "是否推送镜像到 GHCR? (y/N) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "推送镜像..."
+        docker push "ghcr.io/ygqygq2/classfinal/classfinal:$version"
+        docker push "ghcr.io/ygqygq2/classfinal/classfinal:latest"
+        docker push "ghcr.io/ygqygq2/classfinal/classfinal-web:$version"
+        docker push "ghcr.io/ygqygq2/classfinal/classfinal-web:latest"
+        echo "✓ 镜像已推送"
+    fi
+}
+
 function Update_Version() {
     local old_version="$1"
     local new_version="$2"
@@ -82,8 +123,7 @@ function Main() {
     echo "  1. 更新所有版本号为 $RELEASE_VERSION"
     echo "  2. 提交并创建 tag v$RELEASE_VERSION"
     echo "  3. 推送 tag (触发 GitHub Actions 发布)"
-    echo "  4. 更新所有版本号为 $NEXT_VERSION"
-    echo "  5. 提交并推送到 main 分支"
+    echo "  4. 更新所有版本号为 $NEXT_VERSION (不提交)"
     echo ""
     read -p "确认以上信息无误? (y/N) " -n 1 -r
     echo
@@ -116,42 +156,42 @@ function Main() {
     git push origin "v$RELEASE_VERSION"
     echo "✓ Tag 已推送"
     echo ""
-    echo "🚀 GitHub Actions 正在发布到 Maven Central..."
+    echo "🚀 GitHub Actions 正在发布..."
     echo "   查看进度: https://github.com/ygqygq2/classfinal/actions"
     echo ""
-    echo "⏳ 继续本地版本更新..."
-    sleep 2
     
-    # Step 5: 更新到下一个开发版本
+    # 可选: 本地构建 Docker 镜像
+    read -p "是否在本地构建 Docker 镜像? (y/N) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo ""
+        echo "构建 Docker 镜像..."
+        Build_Docker_Images "$RELEASE_VERSION"
+    fi
+    
+    # Step 5: 更新到下一个开发版本（不提交）
     echo ""
     echo "Step 5: 更新到下一个开发版本"
     Update_Version "$RELEASE_VERSION" "$NEXT_VERSION"
     
-    # Step 6: 提交下一个开发版本
-    echo ""
-    echo "Step 6: 提交下一个开发版本"
-    git add .
-    git commit -m "chore: prepare for next development iteration $NEXT_VERSION"
-    echo "✓ 已提交"
-    
-    # Step 7: 推送到 main
-    echo ""
-    echo "Step 7: 推送到 main 分支"
-    git push origin main
-    echo "✓ 已推送"
-    
     echo ""
     echo "=== 发布流程完成 ==="
+    echo ""
+    echo "✅ Release 版本 $RELEASE_VERSION 已推送并触发 CI"
+    echo "✅ 开发版本已更新为 $NEXT_VERSION (未提交)"
     echo ""
     echo "后续步骤:"
     echo "  1. 查看 GitHub Actions 发布进度"
     echo "     https://github.com/ygqygq2/classfinal/actions"
     echo ""
-    echo "  2. 发布成功后 15-30 分钟可在 Maven Central 搜索到"
-    echo "     https://search.maven.org/search?q=g:io.github.ygqygq2"
+    echo "  2. 确认发布成功后，提交并推送开发版本:"
+    echo "     git add . && git commit -m 'chore: prepare for next development iteration $NEXT_VERSION' && git push"
     echo ""
-    echo "  3. 验证发布的 artifact"
-    echo "     https://central.sonatype.com/"
+    echo "  3. 如果发布失败，可以回退修改:"
+    echo "     git checkout ."
+    echo ""
+    echo "  4. Maven Central 发布成功后 15-30 分钟可搜索到"
+    echo "     https://search.maven.org/search?q=g:io.github.ygqygq2"
 }
 
 Main "$@"

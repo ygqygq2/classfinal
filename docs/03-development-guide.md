@@ -297,7 +297,7 @@ git commit -m "docs: 更新 Docker 使用文档"
 export CLASSFINAL_DEBUG=true
 
 # 运行加密并查看详细输出
-java -jar classfinal-2.0.0.jar -file app.jar -packages com.example -pwd test -Y
+java -jar classfinal-fatjar.jar -file app.jar -packages com.example -pwd test -Y
 ```
 
 ### 调试 JavaAgent

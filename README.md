@@ -1,6 +1,6 @@
 # ClassFinal
 
-[![Maven Central](https://img.shields.io/badge/Maven%20Central-2.0.1-blue.svg)](https://central.sonatype.com/artifact/io.github.ygqygq2/classfinal/2.0.1)
+[![Maven Central](https://img.shields.io/badge/Maven%20Central-2.0.2-blue.svg)](https://central.sonatype.com/artifact/io.github.ygqygq2/classfinal/2.0.2)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-1.8+-orange.svg)](https://www.oracle.com/java/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://github.com/ygqygq2/classfinal/pkgs/container/classfinal%2Fclassfinal)
@@ -35,7 +35,7 @@ ClassFinal 是一款 Java class 文件加密工具，支持直接加密 jar 包�
 
 **Docker 镜像**:
 ```bash
-docker pull ghcr.io/ygqygy2/classfinal/classfinal:2.0.1
+docker pull ghcr.io/ygqygq2/classfinal/classfinal:2.0.2
 ```
 
 **Maven 插件**:
@@ -43,7 +43,7 @@ docker pull ghcr.io/ygqygy2/classfinal/classfinal:2.0.1
 <plugin>
     <groupId>io.github.ygqygy2</groupId>
     <artifactId>classfinal-maven-plugin</artifactId>
-    <version>2.0.1</version>
+    <version>2.0.2</version>
 </plugin>
 ```
 
@@ -56,7 +56,7 @@ docker run --rm \
   -e INPUT_FILE=/data/app.jar \
   -e PACKAGES=com.example \
   -e PASSWORD=yourpassword \
-  ghcr.io/ygqygq2/classfinal/classfinal:2.0.1 encrypt
+  ghcr.io/ygqygq2/classfinal/classfinal:2.0.2 encrypt
 ```
 
 生成 `app-encrypted.jar`。更多用法见 [Docker 使用指南](docs/02-docker-usage.md)
@@ -64,9 +64,9 @@ docker run --rm \
 **Maven 插件方式**:
 ```xml
 <plugin>
-    <groupId>io.github.ygqygy2</groupId>
+    <groupId>io.github.ygqygq2</groupId>
     <artifactId>classfinal-maven-plugin</artifactId>
-    <version>2.0.1</version>
+    <version>2.0.2</version>
     <configuration>
         <password>yourpassword</password>
         <packages>com.example</packages>
@@ -85,38 +85,38 @@ docker run --rm \
 运行 `mvn package` 自动生成加密 jar。
 ## 高级功能
 
-### 配置文件 (2.0.1+)
+### 配置文件
 
 使用配置文件管理加密参数，避免命令行暴露敏感信息:
 
 ```bash
 # 生成配置模板
-java -jar classfinal-2.0.1.jar --init-config classfinal.yml
+java -jar classfinal-fatjar.jar --init-config classfinal.yml
 
 # 编辑配置文件
 # 使用配置文件加密
 export CLASSFINAL_PASSWORD="your-password"
-java -jar classfinal-2.0.1.jar --config classfinal.yml
+java -jar classfinal-fatjar.jar --config classfinal.yml
 ```
 
-### 密码管理 (2.0.1+)
+### 密码管理
 
 从文件读取密码（读取后自动删除）:
 
 ```bash
 echo "your-password" > /tmp/password.txt
 chmod 600 /tmp/password.txt
-java -jar classfinal-2.0.1.jar \
+java -jar classfinal-fatjar.jar \
   -file app.jar \
   --password-file /tmp/password.txt
 ```
 
-### 加密验证 (2.0.1+)
+### 加密验证
 
 验证 JAR 是否已加密:
 
 ```bash
-java -jar classfinal-2.0.1.jar --verify app-encrypted.jar
+java -jar classfinal-fatjar.jar --verify app-encrypted.jar
 ```
 
 ### 无密码模式
@@ -124,7 +124,7 @@ java -jar classfinal-2.0.1.jar --verify app-encrypted.jar
 适用于不希望暴露密码的场景，加密时使用 `-nopwd` 标志：
 
 ```bash
-java -jar classfinal-2.0.1.jar -file app.jar -packages com.example -nopwd -Y
+java -jar classfinal-fatjar.jar -file app.jar -packages com.example -nopwd -Y
 ```
 
 运行时添加 `-nopwd` 参数:
@@ -136,12 +136,12 @@ java -javaagent:app-encrypted.jar='-nopwd' -jar app-encrypted.jar
 
 1. 在目标机器生成机器码:
 ```bash
-java -jar classfinal-2.0.1.jar -C
+java -jar classfinal-fatjar.jar -C
 ```
 
 2. 加密时绑定机器码:
 ```bash
-java -jar classfinal-2.0.1.jar \
+java -jar classfinal-fatjar.jar \
   -file app.jar \
   -packages com.example \
   -pwd yourpassword \
@@ -159,16 +159,16 @@ java -jar classfinal-2.0.1.jar \
 ```bash
 # 方式1：使用等号连接（推荐，适用于JAVA_OPTS场景）
 export CLASSFINAL_PASSWORD=yourpassword
-export CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-2.0.1.jar=-pwdname=CLASSFINAL_PASSWORD"
+export CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-fatjar.jar=-pwdname=CLASSFINAL_PASSWORD"
 
 # 方式2：直接写密码
-CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-2.0.1.jar=-pwd=yourpassword"
+CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/classfinal-fatjar.jar=-pwd=yourpassword"
 export CATALINA_OPTS
 ```
 
 **Windows (catalina.bat)**:
 ```bat
-set JAVA_OPTS="-javaagent:C:\path\to\classfinal-2.0.1.jar=-pwd=yourpassword"
+set JAVA_OPTS="-javaagent:C:\path\to\classfinal-fatjar.jar=-pwd=yourpassword"
 ```
 
 ## 安全建议

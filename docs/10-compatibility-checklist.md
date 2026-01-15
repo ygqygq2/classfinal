@@ -55,7 +55,7 @@
 
 ### 3. Docker 镜像名称统一
 
-- ✅ 所有 ClassFinal 镜像：`ghcr.io/ygqygq2/classfinal/classfinal:2.0.0`
+- ✅ 所有 ClassFinal 镜像：`ghcr.io/ygqygq2/classfinal/classfinal:latest`
 - ✅ 所有 JDK 17 运行时：`eclipse-temurin:17-jre`（替换不存在的 openjdk:17-jre-slim）
 
 ### 4. CI 测试 JAR 文件命名统一

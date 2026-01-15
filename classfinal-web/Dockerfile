@@ -2,6 +2,7 @@
 FROM maven:3.9-eclipse-temurin-21 AS builder
 
 ARG USE_CHINA_MIRROR=true
+ARG VERSION
 
 WORKDIR /build
 
@@ -23,20 +24,25 @@ RUN if [ "$USE_CHINA_MIRROR" = "true" ]; then \
     echo '</settings>' >> /root/.m2/settings.xml; \
     fi
 
-# 复制父项目 pom 和核心模块（用于本地构建依赖）
+# 复制父项目 pom 和所有模块
 COPY pom.xml .
 COPY classfinal-core ./classfinal-core
 COPY classfinal-fatjar ./classfinal-fatjar
 COPY classfinal-maven-plugin ./classfinal-maven-plugin
 COPY classfinal-web ./classfinal-web
 
-# 先构建并安装依赖到本地仓库
-RUN mvn install -pl classfinal-core -am -DskipTests -Dgpg.skip=true -B -q \
+# 先构建并安装 classfinal-core 到本地仓库
+RUN mvn clean install -pl classfinal-core -am -DskipTests -Dgpg.skip=true -B -q \
     -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
-# 构建 classfinal-web
+# 切换到 classfinal-web 目录单独构建
 WORKDIR /build/classfinal-web
-RUN mvn clean package -DskipTests -B -q \
+# 如果指定了 VERSION 参数，使用它覆盖 pom.xml 中的版本
+RUN if [ -n "$VERSION" ]; then \
+        mvn versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false -B -q && \
+        sed -i "s|<version>.*-SNAPSHOT</version>|<version>$VERSION</version>|" pom.xml; \
+    fi && \
+    mvn clean package -DskipTests -B -q \
     -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 # 运行时镜像
